@@ -72,7 +72,9 @@ export async function submitMansakuContact(payload: ContactSubmitPayload) {
   if (!supabaseUrl || !supabaseAnonKey) {
     const key = "mansaku.contactLocalQueue";
     const saved = localStorage.getItem(key);
-    const queue = saved ? (JSON.parse(saved) as Array<ContactSubmitPayload & { created_at: string }>) : [];
+    const queue = saved
+      ? (JSON.parse(saved) as Array<ContactSubmitPayload & { created_at: string }>)
+      : [];
 
     queue.push({
       ...payload,
@@ -83,18 +85,26 @@ export async function submitMansakuContact(payload: ContactSubmitPayload) {
     return;
   }
 
-  const response = await fetch(`${supabaseUrl}/functions/v1/send-contact`, {
+  const response = await fetch(`${supabaseUrl}/rest/v1/contact_messages`, {
     method: "POST",
     headers: {
       apikey: supabaseAnonKey,
       Authorization: `Bearer ${supabaseAnonKey}`,
       "Content-Type": "application/json",
+      Prefer: "return=minimal",
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      name: payload.name || null,
+      email: payload.email || null,
+      category: payload.category,
+      message: payload.message,
+      resolved: false,
+    }),
   });
 
   if (!response.ok) {
-    throw new Error(`contact_submit_failed:${response.status}`);
+    const errorText = await response.text().catch(() => "");
+    throw new Error(`contact_submit_failed:${response.status}:${errorText}`);
   }
 }
 
@@ -129,7 +139,10 @@ export function ContactDialog({
   if (!open) return null;
 
   const isLocked = submitState === "sending" || submitState === "done";
-  const canSubmit = message.trim().length > 0 && submitState !== "sending" && submitState !== "done";
+  const canSubmit =
+    message.trim().length > 0 &&
+    submitState !== "sending" &&
+    submitState !== "done";
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -238,7 +251,9 @@ export function ContactDialog({
         </div>
 
         <label style={{ display: "block", marginTop: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>{labels.name}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
+            {labels.name}
+          </div>
           <input
             type="text"
             value={name}
@@ -250,7 +265,9 @@ export function ContactDialog({
         </label>
 
         <label style={{ display: "block", marginTop: 12 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>{labels.email}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
+            {labels.email}
+          </div>
           <input
             type="email"
             value={email}
@@ -262,7 +279,9 @@ export function ContactDialog({
         </label>
 
         <label style={{ display: "block", marginTop: 12 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>{labels.category}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
+            {labels.category}
+          </div>
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
@@ -278,7 +297,9 @@ export function ContactDialog({
         </label>
 
         <label style={{ display: "block", marginTop: 12 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>{labels.message}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
+            {labels.message}
+          </div>
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value.slice(0, 2000))}
@@ -294,11 +315,15 @@ export function ContactDialog({
         </label>
 
         {submitState === "done" && (
-          <div style={{ marginTop: 14, fontSize: 13, color: "#047857" }}>{labels.done}</div>
+          <div style={{ marginTop: 14, fontSize: 13, color: "#047857" }}>
+            {labels.done}
+          </div>
         )}
 
         {submitState === "error" && (
-          <div style={{ marginTop: 14, fontSize: 13, color: "#b91c1c" }}>{labels.error}</div>
+          <div style={{ marginTop: 14, fontSize: 13, color: "#b91c1c" }}>
+            {labels.error}
+          </div>
         )}
 
         <div
