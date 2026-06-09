@@ -273,7 +273,7 @@ export function ReviewDialog({
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [allowPublish, setAllowPublish] = useState(false);
+  const [allowPublish, setAllowPublish] = useState(true);
   const [submitState, setSubmitState] = useState<ReviewSubmitState>("idle");
 
   useEffect(() => {
@@ -282,7 +282,7 @@ export function ReviewDialog({
     setRating(5);
     setComment("");
     setDisplayName("");
-    setAllowPublish(false);
+    setAllowPublish(true);
     setSubmitState("idle");
   }, [open]);
 

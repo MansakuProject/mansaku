@@ -159,15 +159,15 @@ export const helpMessages = {
 
     "help.privacy.title": "Privacy Policy",
     "help.privacy.localSave":
-      "Currently, project data is mainly stored in the user's browser or in a storage location selected by the user.",
+      "Mansaku does not provide login, cloud saving, or advertising. Project data is stored in the user's browser or in a location selected by the user.",
     "help.privacy.cookies":
-      "Currently, this tool does not perform tracking using cookies or advertising services.",
+      "Local storage may be used to control the review form display and to check its operation. Tracking by advertising services is not performed.",
     "help.privacy.analytics":
-      "Currently, this tool does not automatically send user data to external servers.",
+      "When using the review form, you may send a rating, comment, display name, and whether the review may be shown on the site. Submitted reviews may be introduced on the official site only when publication is allowed and after the content is checked.",
     "help.privacy.ads":
-      "Currently, this tool does not use login, cloud saving, access analytics, or advertising features.",
+      "Content submitted from the review form is stored in an external service for review management. Project data, imported images, and exported PNG/PDF/JSON files are not sent by review submission.",
     "help.privacy.external":
-      "Files exported or saved by the user are managed by the user.",
+      "PNG, PDF, JSON, and other files exported or saved by the user are managed by the user.",
     "help.version.title": "Version Information",
     "help.version.name": "Mansaku",
     "help.version.version": "Version",
@@ -335,15 +335,15 @@ export const helpMessages = {
 
     "help.privacy.title": "プライバシーポリシー",
     "help.privacy.localSave":
-      "現在、プロジェクトデータは主にユーザーのブラウザ内またはユーザーが選択した保存先に保存されます。",
+      "Mansakuはログイン、クラウド保存、広告配信を行っていません。プロジェクトデータは、ユーザーのブラウザ内、またはユーザーが選択した保存先に保存されます。",
     "help.privacy.cookies":
-      "現在、Cookie や広告配信サービス等を利用したトラッキングは行っていません。",
+      "レビュー投稿フォームの表示制御や動作確認のため、ブラウザのローカルストレージを利用する場合があります。広告配信サービスを利用したトラッキングは行っていません。",
     "help.privacy.analytics":
-      "現在、ユーザーデータを外部サーバーへ自動送信する機能はありません。",
+      "レビュー投稿フォームでは、評価、コメント、表示名、サイト掲載可否を送信できます。送信されたレビューは、内容確認後、掲載を許可されたものに限り公式サイト上で紹介する場合があります。",
     "help.privacy.ads":
-      "現在、ログイン、クラウド保存、アクセス解析、広告配信の機能はありません。",
+      "レビュー投稿フォームから送信された内容は、レビュー管理のため外部サービスに保存されます。作品データ、読み込んだ画像、出力したPNG・PDF・JSONは、レビュー投稿によって送信されません。",
     "help.privacy.external":
-      "ユーザーが出力・保存したファイルは、ユーザー自身が管理します。",
+      "ユーザーが出力・保存したPNG、PDF、JSON等のファイルは、ユーザー自身が管理します。",
     "help.version.title": "バージョン情報",
     "help.version.name": "Mansaku",
     "help.version.version": "バージョン",
@@ -507,15 +507,15 @@ export const helpMessages = {
 
     "help.privacy.title": "개인정보 처리방침",
     "help.privacy.localSave":
-      "현재 프로젝트 데이터는 주로 사용자의 브라우저 또는 사용자가 선택한 저장 위치에 저장됩니다.",
+      "Mansaku는 로그인, 클라우드 저장, 광고 게재를 제공하지 않습니다. 프로젝트 데이터는 사용자의 브라우저 안 또는 사용자가 선택한 저장 위치에 저장됩니다.",
     "help.privacy.cookies":
-      "현재 쿠키나 광고 서비스 등을 이용한 추적은 하지 않습니다.",
+      "리뷰 작성 폼의 표시 제어와 동작 확인을 위해 브라우저의 로컬 스토리지를 사용할 수 있습니다. 광고 서비스에 의한 추적은 하지 않습니다.",
     "help.privacy.analytics":
-      "현재 사용자 데이터를 외부 서버로 자동 전송하는 기능은 없습니다.",
+      "리뷰 작성 폼에서는 평점, 댓글, 표시 이름, 사이트 게재 허용 여부를 보낼 수 있습니다. 전송된 리뷰는 내용 확인 후 게재가 허용된 것에 한해 공식 사이트에 소개될 수 있습니다.",
     "help.privacy.ads":
-      "현재 로그인, 클라우드 저장, 접속 분석, 광고 기능은 없습니다.",
+      "리뷰 작성 폼에서 전송된 내용은 리뷰 관리를 위해 외부 서비스에 저장됩니다. 작품 데이터, 불러온 이미지, 내보낸 PNG/PDF/JSON은 리뷰 작성으로 전송되지 않습니다.",
     "help.privacy.external":
-      "사용자가 내보내거나 저장한 파일은 사용자가 직접 관리합니다.",
+      "사용자가 내보내거나 저장한 PNG, PDF, JSON 등의 파일은 사용자가 직접 관리합니다.",
     "help.version.title": "버전 정보",
     "help.version.name": "Mansaku",
     "help.version.version": "버전",
@@ -679,15 +679,15 @@ export const helpMessages = {
 
     "help.privacy.title": "隐私政策",
     "help.privacy.localSave":
-      "目前，项目数据主要保存在用户的浏览器中，或保存在用户选择的保存位置。",
+      "Mansaku 不提供登录、云保存或广告投放功能。项目数据会保存在用户的浏览器中，或保存在用户选择的保存位置。",
     "help.privacy.cookies":
-      "目前，本工具不会使用 Cookie 或广告服务等进行跟踪。",
+      "为控制评论投稿表单的显示和确认其运行情况，可能会使用浏览器的本地存储。不会使用广告投放服务进行跟踪。",
     "help.privacy.analytics":
-      "目前，本工具没有将用户数据自动发送到外部服务器的功能。",
+      "在评论投稿表单中，可以发送评分、评论、显示名称以及是否允许在网站上掲載。提交的评论经内容确认后，仅限允许掲載的内容可能会在官方网站上介绍。",
     "help.privacy.ads":
-      "目前，本工具没有登录、云保存、访问分析或广告投放功能。",
+      "通过评论投稿表单发送的内容会保存到外部服务，用于评论管理。作品数据、导入的图片、导出的 PNG/PDF/JSON 不会因评论投稿而发送。",
     "help.privacy.external":
-      "用户导出或保存的文件由用户自行管理。",
+      "用户导出或保存的 PNG、PDF、JSON 等文件由用户自行管理。",
     "help.version.title": "版本信息",
     "help.version.name": "Mansaku",
     "help.version.version": "版本",
@@ -851,15 +851,15 @@ export const helpMessages = {
 
     "help.privacy.title": "Politique de confidentialité",
     "help.privacy.localSave":
-      "Actuellement, les données de projet sont principalement stockées dans le navigateur de l’utilisateur ou dans l’emplacement choisi par l’utilisateur.",
+      "Mansaku ne propose pas de connexion, de sauvegarde dans le cloud ni de publicité. Les données de projet sont stockées dans le navigateur de l’utilisateur ou à l’emplacement choisi par l’utilisateur.",
     "help.privacy.cookies":
-      "Actuellement, cet outil n’effectue pas de suivi au moyen de cookies ou de services publicitaires.",
+      "Le stockage local du navigateur peut être utilisé pour contrôler l’affichage du formulaire d’avis et vérifier son fonctionnement. Aucun suivi par service publicitaire n’est effectué.",
     "help.privacy.analytics":
-      "Actuellement, cet outil n’envoie pas automatiquement les données utilisateur vers des serveurs externes.",
+      "Le formulaire d’avis permet d’envoyer une note, un commentaire, un nom d’affichage et l’autorisation de publication sur le site. Les avis envoyés peuvent être présentés sur le site officiel uniquement après vérification du contenu et si leur publication est autorisée.",
     "help.privacy.ads":
-      "Actuellement, cet outil ne propose pas de connexion, de sauvegarde cloud, d’analyse d’accès ni de publicité.",
+      "Le contenu envoyé depuis le formulaire d’avis est conservé dans un service externe pour la gestion des avis. Les données d’œuvre, les images importées et les fichiers PNG/PDF/JSON exportés ne sont pas envoyés par la soumission d’un avis.",
     "help.privacy.external":
-      "Les fichiers exportés ou enregistrés par l’utilisateur sont gérés par l’utilisateur.",
+      "Les fichiers PNG, PDF, JSON et autres fichiers exportés ou enregistrés par l’utilisateur sont gérés par l’utilisateur lui-même.",
     "help.version.title": "Informations de version",
     "help.version.name": "Mansaku",
     "help.version.version": "Version",
@@ -1023,15 +1023,15 @@ export const helpMessages = {
 
     "help.privacy.title": "Политика конфиденциальности",
     "help.privacy.localSave":
-      "В настоящее время данные проекта в основном сохраняются в браузере пользователя или в выбранном пользователем месте сохранения.",
+      "Mansaku не предоставляет вход в аккаунт, облачное сохранение или показ рекламы. Данные проекта сохраняются в браузере пользователя или в выбранном пользователем месте сохранения.",
     "help.privacy.cookies":
-      "В настоящее время этот инструмент не выполняет отслеживание с помощью cookie или рекламных сервисов.",
+      "Для управления отображением формы отзыва и проверки ее работы может использоваться локальное хранилище браузера. Отслеживание с помощью рекламных сервисов не выполняется.",
     "help.privacy.analytics":
-      "В настоящее время этот инструмент не отправляет пользовательские данные на внешние серверы автоматически.",
+      "В форме отзыва можно отправить оценку, комментарий, отображаемое имя и разрешение на публикацию на сайте. Отправленные отзывы могут быть представлены на официальном сайте только после проверки содержания и только если публикация разрешена.",
     "help.privacy.ads":
-      "В настоящее время в этом инструменте нет функций входа, облачного сохранения, аналитики доступа или рекламы.",
+      "Содержимое, отправленное через форму отзыва, сохраняется во внешнем сервисе для управления отзывами. Данные произведений, импортированные изображения и экспортированные PNG/PDF/JSON не отправляются при отправке отзыва.",
     "help.privacy.external":
-      "Файлы, экспортированные или сохранённые пользователем, управляются самим пользователем.",
+      "Файлы PNG, PDF, JSON и другие файлы, экспортированные или сохраненные пользователем, управляются самим пользователем.",
     "help.version.title": "Сведения о версии",
     "help.version.name": "Mansaku",
     "help.version.version": "Версия",
@@ -1195,15 +1195,15 @@ export const helpMessages = {
 
     "help.privacy.title": "Política de privacidad",
     "help.privacy.localSave":
-      "Actualmente, los datos del proyecto se almacenan principalmente en el navegador del usuario o en la ubicación seleccionada por el usuario.",
+      "Mansaku no ofrece inicio de sesión, guardado en la nube ni distribución de anuncios. Los datos del proyecto se almacenan en el navegador del usuario o en la ubicación elegida por el usuario.",
     "help.privacy.cookies":
-      "Actualmente, esta herramienta no realiza seguimiento mediante cookies ni servicios publicitarios.",
+      "Se puede usar el almacenamiento local del navegador para controlar la visualización del formulario de reseñas y comprobar su funcionamiento. No se realiza seguimiento mediante servicios publicitarios.",
     "help.privacy.analytics":
-      "Actualmente, esta herramienta no envía automáticamente datos del usuario a servidores externos.",
+      "En el formulario de reseñas se pueden enviar una calificación, un comentario, un nombre visible y si se permite la publicación en el sitio. Las reseñas enviadas pueden presentarse en el sitio oficial solo después de revisar el contenido y únicamente si se permitió su publicación.",
     "help.privacy.ads":
-      "Actualmente, esta herramienta no incluye funciones de inicio de sesión, guardado en la nube, análisis de acceso ni publicidad.",
+      "El contenido enviado desde el formulario de reseñas se almacena en un servicio externo para gestionar las reseñas. Los datos de obras, las imágenes importadas y los archivos PNG/PDF/JSON exportados no se envían por publicar una reseña.",
     "help.privacy.external":
-      "Los archivos exportados o guardados por el usuario son gestionados por el propio usuario.",
+      "Los archivos PNG, PDF, JSON y otros archivos exportados o guardados por el usuario son gestionados por el propio usuario.",
     "help.version.title": "Información de versión",
     "help.version.name": "Mansaku",
     "help.version.version": "Versión",
@@ -1361,15 +1361,15 @@ export const helpMessages = {
 
     "help.privacy.title": "Datenschutzerklärung",
     "help.privacy.localSave":
-      "Derzeit werden Projektdaten hauptsächlich im Browser des Nutzers oder an einem vom Nutzer ausgewählten Speicherort gespeichert.",
+      "Mansaku bietet keine Anmeldung, keine Cloud-Speicherung und keine Werbung. Projektdaten werden im Browser des Nutzers oder an einem vom Nutzer ausgewählten Speicherort gespeichert.",
     "help.privacy.cookies":
-      "Derzeit führt dieses Tool kein Tracking über Cookies oder Werbedienste durch.",
+      "Zur Steuerung der Anzeige des Bewertungsformulars und zur Funktionsprüfung kann der lokale Speicher des Browsers verwendet werden. Tracking durch Werbedienste findet nicht statt.",
     "help.privacy.analytics":
-      "Derzeit sendet dieses Tool Nutzerdaten nicht automatisch an externe Server.",
+      "Über das Bewertungsformular können Bewertung, Kommentar, Anzeigename und die Zustimmung zur Veröffentlichung auf der Website gesendet werden. Gesendete Bewertungen können nach inhaltlicher Prüfung nur dann auf der offiziellen Website vorgestellt werden, wenn die Veröffentlichung erlaubt wurde.",
     "help.privacy.ads":
-      "Derzeit enthält dieses Tool keine Funktionen für Login, Cloud-Speicherung, Zugriffsanalyse oder Werbung.",
+      "Über das Bewertungsformular gesendete Inhalte werden zur Verwaltung der Bewertungen in einem externen Dienst gespeichert. Werkdaten, importierte Bilder sowie exportierte PNG/PDF/JSON-Dateien werden durch das Absenden einer Bewertung nicht übertragen.",
     "help.privacy.external":
-      "Vom Nutzer exportierte oder gespeicherte Dateien werden vom Nutzer selbst verwaltet.",
+      "Vom Nutzer exportierte oder gespeicherte PNG-, PDF-, JSON- und andere Dateien werden vom Nutzer selbst verwaltet.",
     "help.version.title": "Versionsinformationen",
     "help.version.name": "Mansaku",
     "help.version.version": "Version",
