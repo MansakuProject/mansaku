@@ -1,3 +1,4 @@
+import { APP_VERSION } from "../version";
 import { useEffect, useMemo, useState } from "react";
 
 export type ReviewExportType = "png" | "pdf" | null;
@@ -201,7 +202,7 @@ export async function submitMansakuReview(payload: ReviewSubmitPayload) {
       allow_publish: payload.allow_publish,
       approved: false,
       source: payload.source,
-      app_version: payload.app_version ?? null,
+      app_version: APP_VERSION,
       export_type: payload.export_type ?? null,
     }),
   });

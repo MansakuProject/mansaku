@@ -1,3 +1,4 @@
+import { APP_VERSION } from "../version";
 import { useEffect, useMemo, useState } from "react";
 
 export type ContactSource = "lp" | "app";
@@ -99,6 +100,7 @@ export async function submitMansakuContact(payload: ContactSubmitPayload) {
       category: payload.category,
       message: payload.message,
       resolved: false,
+      app_version: APP_VERSION,
     }),
   });
 

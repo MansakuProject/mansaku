@@ -1,5 +1,6 @@
 /// <reference path="./fileSystemAccess.d.ts" />
 
+import { APP_VERSION } from "../version";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import * as htmlToImage from "html-to-image";
@@ -4290,7 +4291,7 @@ async function submitReview(payload: ReviewSubmitPayload) {
       allow_publish: payload.allow_publish,
       approved: false,
       source: payload.source,
-      app_version: payload.app_version,
+      app_version: APP_VERSION,
       export_type: payload.export_type,
     }),
   });
@@ -4828,8 +4829,6 @@ export default function App() {
 
   const t = createTranslator(language);
 
-
-  const appVersion = packageJson.version ?? "0.0.0";
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
@@ -4887,7 +4886,7 @@ export default function App() {
   };
 
   const requestReviewPromptAfterExport = (exportType: ReviewExportType) => {
-    if (!shouldShowReviewPrompt(appVersion)) return;
+    if (!shouldShowReviewPrompt(APP_VERSION)) return;
 
     markReviewPromptShown();
     reviewExportTypeRef.current = exportType;
@@ -4905,7 +4904,7 @@ export default function App() {
   };
 
   const dismissReviewForever = () => {
-    setReviewStorageItem(REVIEW_LOCAL_STORAGE_KEYS.dismissedForever, appVersion);
+    setReviewStorageItem(REVIEW_LOCAL_STORAGE_KEYS.dismissedForever, APP_VERSION);
     setReviewDialogOpen(false);
     trackReviewPromptDismissForever(reviewExportTypeRef.current);
   };
@@ -4926,11 +4925,11 @@ export default function App() {
         display_name: displayName || "匿名",
         allow_publish: reviewAllowPublish,
         source: "app",
-        app_version: appVersion,
+        app_version: APP_VERSION,
         export_type: reviewExportTypeRef.current,
       });
 
-      markReviewSubmitted(appVersion);
+      markReviewSubmitted(APP_VERSION);
       setReviewSubmitState("done");
       trackReviewSubmitSuccess(reviewRating, reviewExportTypeRef.current);
 
