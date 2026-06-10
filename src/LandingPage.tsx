@@ -38,11 +38,10 @@ export function LandingPage() {
     }
 
     e.preventDefault();
-
-    window.location.href = "/unsupported-device";
+    setIsUnsupportedDeviceOpen(true);
   }
 
-
+  const [isUnsupportedDeviceOpen, setIsUnsupportedDeviceOpen] = useState(false);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
 
@@ -122,15 +121,6 @@ export function LandingPage() {
       source: "lp",
     });
   };
-
-  function isMobileOrTablet() {
-    const ua = navigator.userAgent;
-
-    return (
-      /Android|iPhone|iPad|iPod/i.test(ua) ||
-      navigator.maxTouchPoints > 1
-    );
-  }
 
   const featureImages = [
     {
@@ -703,6 +693,84 @@ export function LandingPage() {
           </div>
         </div>
       </footer>
+
+
+      {isUnsupportedDeviceOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="unsupported-device-title"
+          onClick={() => setIsUnsupportedDeviceOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1000,
+            display: "grid",
+            placeItems: "center",
+            padding: 20,
+            background: "rgba(17,24,39,0.55)",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "min(100%, 420px)",
+              background: "#ffffff",
+              color: "#111827",
+              borderRadius: 22,
+              padding: 24,
+              boxShadow: "0 24px 70px rgba(15,23,42,0.28)",
+              display: "grid",
+              gap: 14,
+            }}
+          >
+            <h2
+              id="unsupported-device-title"
+              style={{
+                margin: 0,
+                fontSize: 22,
+                lineHeight: 1.45,
+              }}
+            >
+              スマホ・タブレットでは開けません
+            </h2>
+
+            <p
+              style={{
+                margin: 0,
+                color: "#4b5563",
+                fontSize: 15,
+                lineHeight: 1.9,
+              }}
+            >
+              Mansakuは現在、パソコン向けの漫画ページ制作ツールです。
+              Windows または macOS の Google Chrome / Microsoft Edge 最新版で開いてください。
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setIsUnsupportedDeviceOpen(false)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: 44,
+                padding: "0 18px",
+                borderRadius: 12,
+                background: "#111827",
+                color: "#ffffff",
+                fontWeight: 900,
+                border: "none",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                fontSize: 14,
+              }}
+            >
+              閉じる
+            </button>
+          </div>
+        </div>
+      )}
 
       <ReviewDialog
         open={isReviewOpen}
