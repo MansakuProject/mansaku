@@ -3,7 +3,7 @@ import type { CSSProperties, ReactNode } from "react";
 import type { AppLanguage } from "./i18n";
 import { createHelpTranslator } from "./helpI18n";
 import { CloseSvgIcon } from "./svgIcons";
-import packageJson from "../../package.json";
+import { APP_VERSION } from "../version";
 
 type HelpModalProps = {
   onClose: () => void;
@@ -428,7 +428,7 @@ export function HelpModal({ onClose, language }: HelpModalProps) {
             }}
           >
             <div>{t("help.version.name")}</div>
-            <div>{t("help.version.version")} {packageJson.version}</div>
+            <div>{t("help.version.version")} {APP_VERSION}</div>
           </div>
         </HelpCard>
       ),
