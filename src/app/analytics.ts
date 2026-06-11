@@ -7,16 +7,8 @@ type GtagFunction = (
 declare global {
   interface Window {
     gtag?: GtagFunction;
+    __MANSAKU_DISABLE_ANALYTICS__?: boolean;
   }
-}
-
-function isAnalyticsEnabled(): boolean {
-  if (typeof window === "undefined") return false;
-
-  return (
-    window.location.hostname !== "localhost" &&
-    window.location.hostname !== "127.0.0.1"
-  );
 }
 
 function isAnalyticsTestMode(): boolean {
@@ -26,12 +18,31 @@ function isAnalyticsTestMode(): boolean {
   return searchParams.get("test") === "1";
 }
 
+function isLocalhost(): boolean {
+  if (typeof window === "undefined") return false;
+
+  return (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1" ||
+    window.location.hostname === "[::1]"
+  );
+}
+
+function isAnalyticsDisabled(): boolean {
+  if (typeof window === "undefined") return true;
+
+  return (
+    window.__MANSAKU_DISABLE_ANALYTICS__ === true ||
+    isLocalhost() ||
+    isAnalyticsTestMode()
+  );
+}
+
 function trackEvent(
   eventName: string,
   params: Record<string, unknown> = {}
 ): void {
-  if (isAnalyticsTestMode()) return;
-  if (!isAnalyticsEnabled()) return;
+  if (isAnalyticsDisabled()) return;
 
   window.gtag?.("event", eventName, {
     debug_mode: true,

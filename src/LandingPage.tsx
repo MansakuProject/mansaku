@@ -43,8 +43,8 @@ function isLocalHost() {
   );
 }
 
-function getAdminLinkHref(isTestMode: boolean) {
-  return isTestMode ? "/admin?test=1" : "/admin";
+function getAdminLinkHref() {
+  return "/admin?test=1";
 }
 
 async function fetchApprovedMansakuReviewsWithDeveloperReply(
@@ -83,7 +83,7 @@ export function LandingPage() {
   const isTestMode = isTestModeUrl();
   const isDeveloperLinkVisible = isTestMode || isLocalHost();
   const appLinkHref = getAppLinkHref(isTestMode);
-  const adminLinkHref = getAdminLinkHref(isTestMode);
+  const adminLinkHref = getAdminLinkHref();
 
   useEffect(() => {
     document.title = isTestMode ? "Mansaku（テスト）" : "Mansaku";
