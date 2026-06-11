@@ -17,11 +17,11 @@ function getContactLabels(language: string | undefined) {
   if ((language ?? "ja").startsWith("ja")) {
     return {
       title: "お問い合わせ",
-      description: "不具合報告、要望、質問などを送れます。返信が必要な場合はメールアドレスを入力してください。",
+      description:"不具合報告、要望、質問などを送れます。返信が必要な場合はメールアドレスを入力してください。返信メールが届かない場合は迷惑メールフォルダもご確認ください。",
       name: "お名前",
       namePlaceholder: "任意",
       email: "メールアドレス",
-      emailPlaceholder: "返信先メールアドレス",
+      emailPlaceholder: "返信が必要な場合のみ入力",
       category: "種別",
       categories: [
         { value: "bug", label: "不具合報告" },
@@ -46,7 +46,7 @@ function getContactLabels(language: string | undefined) {
     name: "Name",
     namePlaceholder: "Optional",
     email: "Email",
-    emailPlaceholder: "Reply email address",
+    emailPlaceholder: "Only if you need a reply",
     category: "Category",
     categories: [
       { value: "bug", label: "Bug report" },
@@ -95,8 +95,8 @@ export async function submitMansakuContact(payload: ContactSubmitPayload) {
       Prefer: "return=minimal",
     },
     body: JSON.stringify({
-      name: payload.name || null,
-      email: payload.email,
+      name: payload.name.trim() || null,
+      email: payload.email.trim() || null,
       category: payload.category,
       message: payload.message,
       resolved: false,
@@ -142,7 +142,6 @@ export function ContactDialog({
 
   const isLocked = submitState === "sending" || submitState === "done";
   const canSubmit =
-    email.trim().length > 0 &&
     message.trim().length > 0 &&
     submitState !== "sending" &&
     submitState !== "done";
@@ -276,7 +275,6 @@ export function ContactDialog({
             value={email}
             onChange={(e) => setEmail(e.target.value.slice(0, 160))}
             disabled={isLocked}
-            required
             placeholder={labels.emailPlaceholder}
             style={inputStyle}
           />
