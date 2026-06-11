@@ -81,7 +81,7 @@ async function fetchApprovedMansakuReviewsWithDeveloperReply(
 
 export function LandingPage() {
   const isTestMode = isTestModeUrl();
-  const isDeveloperLinkVisible = isTestMode || isLocalHost();
+  const isDeveloperLinkVisible = true;
   const appLinkHref = getAppLinkHref(isTestMode);
   const adminLinkHref = getAdminLinkHref(isTestMode);
 
