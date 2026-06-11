@@ -1011,6 +1011,11 @@ function BubbleTypePreviewSelect({
     allOptions.find((option) => option.value === value)?.label ??
     getBubbleTypeLabel("ellipse", t);
 
+  useEffect(() => {
+    if (open) return;
+    setHighlightedValue(value);
+  }, [value, open]);
+
   const updateMenuPosition = () => {
     const input = inputRef.current;
     if (!input) return;
@@ -1543,6 +1548,8 @@ function countTextCharacters(text: string) {
   return Array.from(text).length;
 }
 
+const BUBBLE_AUTO_MIN_SIZE_PX = 40;
+
 function getBubbleAutoSizePercent({
   text,
   writingMode,
@@ -1553,34 +1560,43 @@ function getBubbleAutoSizePercent({
   fontSize: number;
 }) {
   const safeFontSize = Number.isFinite(fontSize) && fontSize > 0 ? fontSize : 22;
+  const bubblePaddingPx = clamp(safeFontSize * 1.5, 16, 64);
+
   const lines = text
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
     .split("\n");
+
   const textLines = lines.length > 0 ? lines : [""];
   const lineCount = Math.max(1, textLines.length);
   const maxChars = Math.max(
     1,
     ...textLines.map((line) => countTextCharacters(line.trimEnd()))
   );
-  const lineHeightPx = safeFontSize * 1.25;
 
-  let pixelWidth: number;
-  let pixelHeight: number;
+  const charAdvancePx = safeFontSize;
+  const lineAdvancePx = safeFontSize * 1.25;
+
+  let textWidth: number;
+  let textHeight: number;
 
   if ((writingMode ?? "vertical") === "horizontal") {
-    const textWidth = maxChars * safeFontSize * 0.95;
-    const textHeight = lineCount * lineHeightPx;
-
-    pixelWidth = Math.min(420, Math.max(120, textWidth + 72));
-    pixelHeight = Math.min(320, Math.max(100, textHeight + 64));
+    textWidth = maxChars * charAdvancePx;
+    textHeight = lineCount * lineAdvancePx;
   } else {
-    const textWidth = lineCount * lineHeightPx;
-    const textHeight = maxChars * (safeFontSize + 1);
-
-    pixelWidth = Math.min(320, Math.max(110, textWidth + 72));
-    pixelHeight = Math.min(420, Math.max(130, textHeight + 72));
+    textWidth = lineCount * lineAdvancePx;
+    textHeight = maxChars * charAdvancePx;
   }
+
+  const pixelWidth = Math.max(
+    BUBBLE_AUTO_MIN_SIZE_PX,
+    textWidth + bubblePaddingPx * 2
+  );
+
+  const pixelHeight = Math.max(
+    BUBBLE_AUTO_MIN_SIZE_PX,
+    textHeight + bubblePaddingPx * 2
+  );
 
   return {
     w: (pixelWidth / PAGE_WIDTH) * 100,
@@ -2839,60 +2855,49 @@ function getBubbleAutoFitSizePercent(
   fallbackText = " "
 ) {
   const fontSize = clamp(Number(bubble.fontSize) || 22, 10, 120);
+  const bubblePaddingPx = clamp(fontSize * 1.5, 16, 64);
   const writingMode = bubble.writingMode ?? "vertical";
-  const measuredText = (bubble.text ?? "").length > 0 ? bubble.text : fallbackText;
-  const lines = (measuredText || " ").split(/\r?\n/);
-  const safeLines = lines.length > 0 ? lines : [" "];
-  const lineHeight = fontSize * 1.25;
-  const bubbleType = bubble.type ?? bubble.shape ?? "ellipse";
-  const isHorizontal = writingMode === "horizontal";
-
-  const measureCanvas =
-    typeof document === "undefined" ? null : document.createElement("canvas");
-  const context = measureCanvas?.getContext("2d") ?? null;
-
-  if (context) {
-    context.font = `${fontSize}px ${bubble.fontFamily?.trim() || "sans-serif"}`;
-  }
-
-  const measureHorizontalLine = (line: string) => {
-    const safeLine = line.length > 0 ? line : " ";
-
-    if (context) {
-      return context.measureText(safeLine).width;
-    }
-
-    return Array.from(safeLine).length * fontSize;
-  };
-
+  const measuredText =
+    (bubble.text ?? "").length > 0 ? bubble.text : fallbackText;
+  const safeText = measuredText.length > 0 ? measuredText : " ";
+  const safeLines = safeText.split(/\r?\n/);
+  const lineCount = Math.max(1, safeLines.length);
   const maxLineLength = Math.max(
     1,
-    ...safeLines.map((line) => Array.from(line.length > 0 ? line : " ").length)
+    ...safeLines.map((line) =>
+      Array.from(line.length > 0 ? line : " ").length
+    )
   );
 
-  const maxHorizontalLineWidth = Math.max(
-    fontSize,
-    ...safeLines.map(measureHorizontalLine)
-  );
+  const charAdvancePx = fontSize;
+  const lineAdvancePx = fontSize * 1.25;
+  const isHorizontal = writingMode === "horizontal";
 
-  let contentWidth = maxHorizontalLineWidth;
-  let contentHeight = safeLines.length * lineHeight;
+  let contentWidth: number;
+  let contentHeight: number;
 
-  if (!isHorizontal) {
-    contentWidth = safeLines.length * lineHeight;
-    contentHeight = maxLineLength * fontSize * 1.08;
+  if (isHorizontal) {
+    contentWidth = maxLineLength * charAdvancePx;
+    contentHeight = lineCount * lineAdvancePx;
+  } else {
+    contentWidth = lineCount * lineAdvancePx;
+    contentHeight = maxLineLength * charAdvancePx;
   }
 
-  const paddingProfile = { x: 3.2, y: 2.7 };
+  const widthPx = contentWidth + bubblePaddingPx * 2;
+  const heightPx = contentHeight + bubblePaddingPx * 2;
 
-  const widthPx = contentWidth + fontSize * paddingProfile.x + 12;
-  const heightPx = contentHeight + fontSize * paddingProfile.y + 12;
+  const nextW = clamp(
+    (Math.max(widthPx, BUBBLE_AUTO_MIN_SIZE_PX) / PAGE_WIDTH) * 100,
+    4,
+    95
+  );
 
-  const minWidthPx = isHorizontal ? 96 : 80;
-  const minHeightPx = isHorizontal ? 70 : 96;
-
-  const nextW = clamp((Math.max(widthPx, minWidthPx) / PAGE_WIDTH) * 100, 4, 95);
-  const nextH = clamp((Math.max(heightPx, minHeightPx) / PAGE_HEIGHT) * 100, 4, 95);
+  const nextH = clamp(
+    (Math.max(heightPx, BUBBLE_AUTO_MIN_SIZE_PX) / PAGE_HEIGHT) * 100,
+    4,
+    95
+  );
 
   return { w: nextW, h: nextH };
 }
@@ -9638,37 +9643,29 @@ useEffect(() => {
         x: bubble.x,
         y: bubble.y,
       })),
-      ...currentPage.sounds.map((sound) => ({
-        kind: "sound" as const,
-        id: sound.id,
-        x: sound.x,
-        y: sound.y,
-      })),
+      ...currentPage.sounds.map((sound) => {
+        const displaySound =
+          (sound.text ?? "").length > 0
+            ? sound
+            : {
+                ...sound,
+                text: t("soundTextPlaceholder"),
+              };
+
+        const box = getSoundTextBoxMetrics(displaySound);
+
+        return {
+          kind: "sound" as const,
+          id: sound.id,
+          x: sound.x - (box.width / PAGE_WIDTH) * 50,
+          y: sound.y - (box.height / PAGE_HEIGHT) * 50,
+        };
+      }),
     ])
-      .map((item) => {
-        if (item.kind === "frame") {
-          const frame = currentPage.frames.find((f) => f.id === item.id);
-          return frame ? { ...item, x: frame.x, y: frame.y } : null;
-        }
-
-        if (item.kind === "bubble") {
-          const bubble = currentPage.bubbles.find((b) => b.id === item.id);
-          return bubble ? { ...item, x: bubble.x, y: bubble.y } : null;
-        }
-
-        const sound = currentPage.sounds.find((s) => s.id === item.id);
-        return sound ? { ...item, x: sound.x, y: sound.y } : null;
-      })
-      .filter((item): item is SelectedItem & { x: number; y: number } => item !== null)
+      .filter((item): item is SelectedItem & { x: number; y: number } => item != null)
       .sort((a, b) => {
         if (Math.abs(a.y - b.y) > 0.001) return a.y - b.y;
         if (Math.abs(a.x - b.x) > 0.001) return a.x - b.x;
-
-        const kindOrder = { frame: 0, bubble: 1, sound: 2 } as const;
-        if (kindOrder[a.kind] !== kindOrder[b.kind]) {
-          return kindOrder[a.kind] - kindOrder[b.kind];
-        }
-
         return a.id - b.id;
       });
 
@@ -14528,7 +14525,7 @@ function isValidMergeQuad(
         blackTone: 0,
         tailEnabled: true,
         tailStyle: "triangle",
-        tailAngle: 40,
+        tailAngle: 90,
         tailLength: defaultTailLength,
         tailWidth: 50,
         tailMode: "outside",
@@ -15239,60 +15236,64 @@ function isValidMergeQuad(
     });
   };
 
-  const handleResetBubbleStyle = (bubbleId: number) => {
-    updateBubble(bubbleId, (b) => {
-      const nextFontSize = 22;
-      const nextWritingMode = defaultTextDirection;
-      const nextSize = getBubbleAutoSizePercent({
-        text: b.text,
-        writingMode: nextWritingMode,
-        fontSize: nextFontSize,
-      });
-      const currentCenterX = b.x + b.w / 2;
-      const currentCenterY = b.y + b.h / 2;
-      const nextX = clamp(currentCenterX - nextSize.w / 2, 0, 100 - nextSize.w);
-      const nextY = clamp(currentCenterY - nextSize.h / 2, 0, 100 - nextSize.h);
-      const defaultTailLength = getDefaultBubbleTailLengthPx({
-        w: nextSize.w,
-        h: nextSize.h,
-        shape: "ellipse",
-      });
+const handleResetBubbleStyle = (bubbleId: number) => {
+  updateBubble(bubbleId, (b) => {
+    const nextFontSize = 22;
+    const nextWritingMode = defaultTextDirection;
 
-      return {
-        ...b,
-        x: nextX,
-        y: nextY,
-        w: nextSize.w,
-        h: nextSize.h,
-        type: "ellipse",
-        shape: "ellipse",
-        clipToFrame: true,
-        fontSize: nextFontSize,
-        fontFamily: "",
-        writingMode: nextWritingMode,
+    const resetBase = {
+      ...b,
 
-        backgroundColor: "white",
-        textColor: "black",
-        whiteTone: 100,
-        blackTone: 0,
-        freeTextColor: undefined,
-        freeTextOutlineEnabled: undefined,
-        freeTextOutlineColor: undefined,
-        freeBubbleBackgroundColor: undefined,
-        freeBubbleTone: undefined,
-        freeBubbleBorderEnabled: undefined,
-        freeBubbleBorderColor: undefined,
-        bubbleBackgroundToneMode: "white",
+      type: "ellipse",
+      shape: "ellipse",
+      clipToFrame: true,
+      rotate: 0,
 
-        tailEnabled: true,
-        tailStyle: "triangle",
-        tailAngle: b.tailAngle,
-        tailLength: defaultTailLength,
-        tailWidth: 50,
-        tailMode: b.tailMode ?? "outside",
-      };
+      fontSize: nextFontSize,
+      fontFamily: "",
+      writingMode: nextWritingMode,
+
+      backgroundColor: "white",
+      textColor: "black",
+      whiteTone: 100,
+      blackTone: 0,
+
+      tailEnabled: true,
+      tailStyle: "triangle",
+      tailMode: "outside",
+      tailAngle: 90,
+      tailLength: 0,
+      tailWidth: 50,
+      tailCurve: 0,
+    } as Bubble & FreeTextColorFields & FreeBubbleBackgroundFields;
+
+    delete resetBase.freeTextColor;
+    delete resetBase.freeTextOutlineEnabled;
+    delete resetBase.freeTextOutlineColor;
+    delete resetBase.freeBubbleBackgroundColor;
+    delete resetBase.freeBubbleTone;
+    delete resetBase.freeBubbleBorderEnabled;
+    delete resetBase.freeBubbleBorderColor;
+
+    resetBase.bubbleBackgroundToneMode = "white";
+
+    const fitted = fitBubbleSizeToText(
+      resetBase as Bubble,
+      t("bubbleTextPlaceholder")
+    );
+
+    const defaultTailLength = getDefaultBubbleTailLengthPx({
+      w: fitted.w,
+      h: fitted.h,
+      shape: "ellipse",
     });
-  };
+
+    return {
+      ...fitted,
+      tailLength: defaultTailLength,
+    };
+  });
+};
 
   const handleResetSoundStyle = (soundId: number) => {
     const defaultSoundStyle = SOUND_STYLE_PRESETS[DEFAULT_SOUND_STYLE_KEY];
