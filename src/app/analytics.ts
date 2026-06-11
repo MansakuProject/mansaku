@@ -7,18 +7,12 @@ type GtagFunction = (
 declare global {
   interface Window {
     gtag?: GtagFunction;
+    __MANSAKU_TEST_MODE__?: boolean;
     __MANSAKU_DISABLE_ANALYTICS__?: boolean;
   }
 }
 
-function isAnalyticsTestMode(): boolean {
-  if (typeof window === "undefined") return false;
-
-  const searchParams = new URLSearchParams(window.location.search);
-  return searchParams.get("test") === "1";
-}
-
-function isLocalhost(): boolean {
+function isLocalHost(): boolean {
   if (typeof window === "undefined") return false;
 
   return (
@@ -28,21 +22,35 @@ function isLocalhost(): boolean {
   );
 }
 
-function isAnalyticsDisabled(): boolean {
-  if (typeof window === "undefined") return true;
+function isTestMode(): boolean {
+  if (typeof window === "undefined") return false;
 
-  return (
-    window.__MANSAKU_DISABLE_ANALYTICS__ === true ||
-    isLocalhost() ||
-    isAnalyticsTestMode()
-  );
+  if (window.__MANSAKU_TEST_MODE__) return true;
+
+  const searchParams = new URLSearchParams(window.location.search);
+  if (searchParams.get("test") === "1") return true;
+
+  try {
+    return sessionStorage.getItem("mansaku_test_mode") === "1";
+  } catch {
+    return false;
+  }
+}
+
+function isAnalyticsEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  if (window.__MANSAKU_DISABLE_ANALYTICS__) return false;
+  if (isLocalHost()) return false;
+  if (isTestMode()) return false;
+
+  return true;
 }
 
 function trackEvent(
   eventName: string,
   params: Record<string, unknown> = {}
 ): void {
-  if (isAnalyticsDisabled()) return;
+  if (!isAnalyticsEnabled()) return;
 
   window.gtag?.("event", eventName, {
     debug_mode: true,
@@ -53,7 +61,7 @@ function trackEvent(
 let appOpenTracked = false;
 
 export function initializeAnalytics(): void {
-  // index.html 側でGA公式タグを読み込むため、ここでは何もしない
+  // index.html側でGA公式タグを読み込むため、ここでは何もしない
 }
 
 export function trackAppOpen(): void {
@@ -102,15 +110,23 @@ export function trackReviewPromptClose(exportType: "png" | "pdf" | null): void {
   trackEvent("review_prompt_close", { export_type: exportType });
 }
 
-export function trackReviewPromptDismissForever(exportType: "png" | "pdf" | null): void {
+export function trackReviewPromptDismissForever(
+  exportType: "png" | "pdf" | null
+): void {
   trackEvent("review_prompt_dismiss_forever", { export_type: exportType });
 }
 
-export function trackReviewSubmit(rating: number, exportType: "png" | "pdf" | null): void {
+export function trackReviewSubmit(
+  rating: number,
+  exportType: "png" | "pdf" | null
+): void {
   trackEvent("review_submit", { rating, export_type: exportType });
 }
 
-export function trackReviewSubmitSuccess(rating: number, exportType: "png" | "pdf" | null): void {
+export function trackReviewSubmitSuccess(
+  rating: number,
+  exportType: "png" | "pdf" | null
+): void {
   trackEvent("review_submit_success", { rating, export_type: exportType });
 }
 
