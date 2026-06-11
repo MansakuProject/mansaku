@@ -27,7 +27,10 @@ function getSupabaseConfig() {
 function isTestModeUrl() {
   if (typeof window === "undefined") return false;
 
-  return new URLSearchParams(window.location.search).get("test") === "1";
+  return (
+    new URLSearchParams(window.location.search).get("test") === "1" ||
+    isLocalHost()
+  );
 }
 
 function getAppLinkHref(isTestMode: boolean) {
@@ -249,17 +252,45 @@ export function LandingPage() {
         <div style={{ display: "grid", gap: 18 }}>
           <div
             style={{
-              display: "inline-flex",
-              width: "fit-content",
-              padding: "6px 12px",
-              borderRadius: 999,
-              background: "#e0e7ff",
-              color: "#3730a3",
-              fontSize: 13,
-              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flexWrap: "wrap",
             }}
           >
-            シンプルに、まず漫画を形にする。
+            <div
+              style={{
+                display: "inline-flex",
+                width: "fit-content",
+                padding: "6px 12px",
+                borderRadius: 999,
+                background: "#e0e7ff",
+                color: "#3730a3",
+                fontSize: 13,
+                fontWeight: 700,
+              }}
+            >
+              シンプルに、まず漫画を形にする。
+            </div>
+
+            {isTestMode && (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  minHeight: 28,
+                  padding: "0 10px",
+                  borderRadius: 999,
+                  background: "#fef3c7",
+                  border: "1px solid #f59e0b",
+                  color: "#92400e",
+                  fontSize: 12,
+                  fontWeight: 900,
+                }}
+              >
+                テストモード（Analytics除外）
+              </span>
+            )}
           </div>
 
           <div
@@ -397,26 +428,6 @@ export function LandingPage() {
               alignItems: "center",
             }}
           >
-            {isTestMode && (
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  minHeight: 28,
-                  padding: "0 10px",
-                  borderRadius: 999,
-                  background: "#fef3c7",
-                  border: "1px solid #f59e0b",
-                  color: "#92400e",
-                  fontSize: 12,
-                  fontWeight: 900,
-                  boxShadow: "0 6px 16px rgba(15,23,42,0.06)",
-                }}
-              >
-                テストモード（Analytics除外）
-              </span>
-            )}
-
             {[
               "Windows / macOS",
               "Chrome / Edge 推奨",
