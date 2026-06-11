@@ -27,13 +27,7 @@ function getSupabaseConfig() {
 function isTestModeUrl() {
   if (typeof window === "undefined") return false;
 
-  const params = new URLSearchParams(window.location.search);
-
-  return (
-    params.get("test") === "1" ||
-    window.location.href.includes("?test=1") ||
-    window.location.href.includes("&test=1")
-  );
+  return new URLSearchParams(window.location.search).get("test") === "1";
 }
 
 function getAppLinkHref(isTestMode: boolean) {
