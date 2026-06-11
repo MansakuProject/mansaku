@@ -19,10 +19,18 @@ function isAnalyticsEnabled(): boolean {
   );
 }
 
+function isAnalyticsTestMode(): boolean {
+  if (typeof window === "undefined") return false;
+
+  const searchParams = new URLSearchParams(window.location.search);
+  return searchParams.get("test") === "1";
+}
+
 function trackEvent(
   eventName: string,
   params: Record<string, unknown> = {}
 ): void {
+  if (isAnalyticsTestMode()) return;
   if (!isAnalyticsEnabled()) return;
 
   window.gtag?.("event", eventName, {
@@ -74,7 +82,6 @@ export function trackExportPng(): void {
 export function trackExportPdf(): void {
   trackEvent("export_pdf");
 }
-
 
 export function trackReviewPromptShow(exportType: "png" | "pdf" | null): void {
   trackEvent("review_prompt_show", { export_type: exportType });

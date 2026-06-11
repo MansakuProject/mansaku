@@ -24,6 +24,29 @@ function getSupabaseConfig() {
   return { url, anonKey };
 }
 
+function isTestModeUrl() {
+  if (typeof window === "undefined") return false;
+
+  return new URLSearchParams(window.location.search).get("test") === "1";
+}
+
+function getAppLinkHref(isTestMode: boolean) {
+  return isTestMode ? "/app?test=1" : "/app";
+}
+
+function isLocalHost() {
+  if (typeof window === "undefined") return false;
+
+  return (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1"
+  );
+}
+
+function getAdminLinkHref(isTestMode: boolean) {
+  return isTestMode ? "/admin?test=1" : "/admin";
+}
+
 async function fetchApprovedMansakuReviewsWithDeveloperReply(
   limit: number
 ): Promise<PublicMansakuReviewWithDeveloperReply[]> {
@@ -57,6 +80,15 @@ async function fetchApprovedMansakuReviewsWithDeveloperReply(
 }
 
 export function LandingPage() {
+  const isTestMode = isTestModeUrl();
+  const isDeveloperLinkVisible = isTestMode || isLocalHost();
+  const appLinkHref = getAppLinkHref(isTestMode);
+  const adminLinkHref = getAdminLinkHref(isTestMode);
+
+  useEffect(() => {
+    document.title = isTestMode ? "Mansaku（テスト）" : "Mansaku";
+  }, [isTestMode]);
+
   function isSupportedDesktopBrowser() {
     const ua = navigator.userAgent;
 
@@ -293,7 +325,7 @@ export function LandingPage() {
 
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <a
-              href="/app"
+              href={appLinkHref}
               target="_blank"
               rel="noopener noreferrer"
               onClick={handleOpenApp}
@@ -332,6 +364,29 @@ export function LandingPage() {
             >
               特徴を見る
             </a>
+
+            {isDeveloperLinkVisible && (
+              <a
+                href={adminLinkHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minHeight: 46,
+                  padding: "0 20px",
+                  borderRadius: 12,
+                  background: "#fef3c7",
+                  color: "#92400e",
+                  textDecoration: "none",
+                  fontWeight: 900,
+                  border: "1px solid #f59e0b",
+                }}
+              >
+                管理画面
+              </a>
+            )}
           </div>
 
           <div
@@ -342,6 +397,26 @@ export function LandingPage() {
               alignItems: "center",
             }}
           >
+            {isTestMode && (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  minHeight: 28,
+                  padding: "0 10px",
+                  borderRadius: 999,
+                  background: "#fef3c7",
+                  border: "1px solid #f59e0b",
+                  color: "#92400e",
+                  fontSize: 12,
+                  fontWeight: 900,
+                  boxShadow: "0 6px 16px rgba(15,23,42,0.06)",
+                }}
+              >
+                テストモード（Analytics除外）
+              </span>
+            )}
+
             {[
               "Windows / macOS",
               "Chrome / Edge 推奨",
