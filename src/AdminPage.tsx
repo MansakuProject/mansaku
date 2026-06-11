@@ -42,7 +42,8 @@ type AdminContactMessage = {
   reply_memo?: string | null;
   replied_at?: string | null;
 };
-
+const isTestMode =
+  new URLSearchParams(window.location.search).get("test") === "1";
 const ADMIN_SESSION_STORAGE_KEY = "mansaku_admin_session_v1";
 const ADMIN_EMAIL = "mansakuproject@gmail.com";
 
@@ -959,7 +960,10 @@ export function AdminPage() {
             </p>
           </div>
 
-          <a href="/" style={linkStyle}>
+          <a
+            href={isTestMode ? "/?test=1" : "/"}
+            style={linkStyle}
+          >
             LPへ戻る
           </a>
         </header>
