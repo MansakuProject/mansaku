@@ -25,6 +25,8 @@ type AdminReview = {
   source: string | null;
   app_version?: string | null;
   export_type?: string | null;
+  developer_comment?: string | null;
+  developer_comment_visible?: boolean | null;
   created_at: string | null;
 };
 
@@ -37,6 +39,8 @@ type AdminContactMessage = {
   app_version?: string | null;
   resolved: boolean | null;
   created_at: string | null;
+  reply_memo?: string | null;
+  replied_at?: string | null;
 };
 
 const ADMIN_SESSION_STORAGE_KEY = "mansaku_admin_session_v1";
@@ -85,6 +89,69 @@ function formatDateTime(value: string | null) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function getContactCategoryLabel(category: string | null) {
+  switch (category) {
+    case "bug":
+      return "不具合報告";
+    case "request":
+      return "要望";
+    case "question":
+      return "質問";
+    case "other":
+      return "その他";
+    default:
+      return category || "-";
+  }
+}
+
+function buildContactReplyCopyText(contact: AdminContactMessage) {
+  const email = contact.email?.trim() || "-";
+  const replyMemo = contact.reply_memo?.trim() || "";
+
+  return `宛先:
+${email}
+
+件名:
+Mansakuお問い合わせ返信
+
+本文:
+お問い合わせありがとうございます。
+
+────────────────
+種別
+${getContactCategoryLabel(contact.category)}
+
+内容
+${contact.message || "（内容なし）"}
+────────────────
+
+返信:
+${replyMemo}
+`;
+}
+
+async function copyTextToClipboard(text: string) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  textarea.style.top = "0";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+
+  try {
+    document.execCommand("copy");
+  } finally {
+    document.body.removeChild(textarea);
+  }
 }
 
 function getReviewStatus(review: AdminReview) {
@@ -189,6 +256,8 @@ async function fetchAdminReviews(session: AdminSession): Promise<AdminReview[]> 
     "source",
     "app_version",
     "export_type",
+    "developer_comment",
+    "developer_comment_visible",
     "created_at",
   ].join(",");
 
@@ -305,6 +374,47 @@ async function updateReviewDecision(params: {
   }
 }
 
+
+async function updateReviewDeveloperReply(params: {
+  session: AdminSession;
+  reviewId: number | string;
+  developerReply: string;
+  developerReplyVisible: boolean;
+}) {
+  const { url, anonKey } = getSupabaseConfig();
+  if (!url || !anonKey) {
+    throw new Error("Supabase設定が見つかりません。");
+  }
+
+  const trimmedReply = params.developerReply.trim();
+
+  const response = await fetch(
+    `${url}/rest/v1/reviews?id=eq.${encodeURIComponent(String(params.reviewId))}`,
+    {
+      method: "PATCH",
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${params.session.access_token}`,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({
+        developer_comment: trimmedReply.length > 0 ? trimmedReply : null,
+        developer_comment_visible: trimmedReply.length > 0 ? params.developerReplyVisible : false,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`開発者コメントを更新できませんでした。${response.status}`);
+  }
+
+  return {
+    developer_comment: trimmedReply.length > 0 ? trimmedReply : null,
+    developer_comment_visible: trimmedReply.length > 0 ? params.developerReplyVisible : false,
+  };
+}
+
 async function fetchAdminContactMessages(session: AdminSession): Promise<AdminContactMessage[]> {
   const { url, anonKey } = getSupabaseConfig();
   if (!url || !anonKey) {
@@ -319,6 +429,8 @@ async function fetchAdminContactMessages(session: AdminSession): Promise<AdminCo
     "message",
     "app_version",
     "resolved",
+    "reply_memo",
+    "replied_at",
     "created_at",
   ].join(",");
 
@@ -370,8 +482,52 @@ async function updateContactResolved(params: {
   }
 }
 
+async function updateContactReplyMemo(params: {
+  session: AdminSession;
+  contactId: number | string;
+  replyMemo: string;
+}) {
+  const { url, anonKey } = getSupabaseConfig();
+  if (!url || !anonKey) {
+    throw new Error("Supabase設定が見つかりません。");
+  }
+
+  const trimmedMemo = params.replyMemo.trim();
+  const repliedAt = trimmedMemo.length > 0 ? new Date().toISOString() : null;
+
+  const response = await fetch(
+    `${url}/rest/v1/contact_messages?id=eq.${encodeURIComponent(String(params.contactId))}`,
+    {
+      method: "PATCH",
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${params.session.access_token}`,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({
+        reply_memo: trimmedMemo.length > 0 ? trimmedMemo : null,
+        replied_at: repliedAt,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`返信メモを更新できませんでした。${response.status}`);
+  }
+
+  return {
+    reply_memo: trimmedMemo.length > 0 ? trimmedMemo : null,
+    replied_at: repliedAt,
+  };
+}
+
 export function AdminPage() {
   const [session, setSession] = useState<AdminSession | null>(() => readStoredSession());
+
+  useEffect(() => {
+    document.title = "Mansaku - 管理画面";
+  }, []);
   const [activeTab, setActiveTab] = useState<AdminTab>("dashboard");
   const [email, setEmail] = useState(ADMIN_EMAIL);
   const [password, setPassword] = useState("");
@@ -457,6 +613,7 @@ export function AdminPage() {
       const searchText = [
         review.display_name,
         review.comment,
+        review.developer_comment,
         review.source,
         review.export_type,
         review.app_version,
@@ -670,6 +827,50 @@ export function AdminPage() {
     }
   };
 
+
+  const handleSaveReviewDeveloperReply = async (params: {
+    review: AdminReview;
+    developerReply: string;
+    developerReplyVisible: boolean;
+  }) => {
+    if (!session) return;
+
+    setSavingId(params.review.id);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const validSession = await getValidSession(session);
+      setSession(validSession);
+
+      const updated = await updateReviewDeveloperReply({
+        session: validSession,
+        reviewId: params.review.id,
+        developerReply: params.developerReply,
+        developerReplyVisible: params.developerReplyVisible,
+      });
+
+      setReviews((prev) =>
+        prev.map((item) =>
+          item.id === params.review.id
+            ? {
+                ...item,
+                developer_comment: updated.developer_comment,
+                developer_comment_visible: updated.developer_comment_visible,
+              }
+            : item
+        )
+      );
+
+      setMessage("開発者コメントを保存しました。");
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : "開発者コメントを保存できませんでした。");
+    } finally {
+      setSavingId(null);
+    }
+  };
+
   const handleToggleContactResolved = async (contact: AdminContactMessage) => {
     if (!session) return;
 
@@ -704,13 +905,54 @@ export function AdminPage() {
     }
   };
 
+  const handleSaveContactReplyMemo = async (params: {
+    contact: AdminContactMessage;
+    replyMemo: string;
+  }) => {
+    if (!session) return;
+
+    setSavingContactId(params.contact.id);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const validSession = await getValidSession(session);
+      setSession(validSession);
+
+      const updated = await updateContactReplyMemo({
+        session: validSession,
+        contactId: params.contact.id,
+        replyMemo: params.replyMemo,
+      });
+
+      setContacts((prev) =>
+        prev.map((item) =>
+          item.id === params.contact.id
+            ? {
+                ...item,
+                reply_memo: updated.reply_memo,
+                replied_at: updated.replied_at,
+              }
+            : item
+        )
+      );
+
+      setMessage("返信メモを保存しました。");
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : "返信メモを保存できませんでした。");
+    } finally {
+      setSavingContactId(null);
+    }
+  };
+
   return (
     <main style={pageStyle}>
       <section style={shellStyle}>
         <header style={headerStyle}>
           <div>
             <h1 style={{ margin: 0, fontSize: 30, lineHeight: 1.3 }}>
-              Mansaku 管理画面
+              Mansaku - 管理画面
             </h1>
             <p style={{ margin: "6px 0 0", color: "#6b7280", fontSize: 14 }}>
               レビューと問い合わせを管理します。
@@ -803,6 +1045,7 @@ export function AdminPage() {
                   onFilterChange={setReviewFilter}
                   onSearchChange={setReviewSearch}
                   onSetDecision={handleSetReviewDecision}
+                  onSaveDeveloperReply={handleSaveReviewDeveloperReply}
                 />
               )}
 
@@ -816,6 +1059,7 @@ export function AdminPage() {
                   onFilterChange={setContactFilter}
                   onSearchChange={setContactSearch}
                   onToggleResolved={handleToggleContactResolved}
+                  onSaveReplyMemo={handleSaveContactReplyMemo}
                 />
               )}
             </section>
@@ -954,6 +1198,7 @@ function ReviewPanel({
   onFilterChange,
   onSearchChange,
   onSetDecision,
+  onSaveDeveloperReply,
 }: {
   reviews: AdminReview[];
   totalCount: number;
@@ -964,6 +1209,11 @@ function ReviewPanel({
   onFilterChange: (value: ReviewFilter) => void;
   onSearchChange: (value: string) => void;
   onSetDecision: (review: AdminReview, decision: "open" | "approved" | "rejected") => void;
+  onSaveDeveloperReply: (params: {
+    review: AdminReview;
+    developerReply: string;
+    developerReplyVisible: boolean;
+  }) => void;
 }) {
   return (
     <div style={panelRootStyle}>
@@ -1021,6 +1271,7 @@ function ReviewPanel({
                 <Th style={versionColumnStyle}>Ver</Th>
                 <Th style={nameColumnStyle}>名前</Th>
                 <Th style={commentColumnStyle}>コメント</Th>
+                <Th style={developerReplyColumnStyle}>開発者コメント</Th>
                 <Th style={reviewAllowColumnStyle}>投稿者許可</Th>
                 <Th style={reviewActionColumnStyle}>対応</Th>
               </tr>
@@ -1045,6 +1296,13 @@ function ReviewPanel({
                     <div style={commentCellStyle}>
                       {review.comment || "（コメントなし）"}
                     </div>
+                  </Td>
+                  <Td style={developerReplyColumnStyle}>
+                    <DeveloperReplyEditor
+                      review={review}
+                      saving={savingId === review.id}
+                      onSave={onSaveDeveloperReply}
+                    />
                   </Td>
                   <Td style={reviewAllowColumnStyle}>
                     <BoolPill value={!!review.allow_publish} trueLabel="OK" falseLabel="NG" />
@@ -1092,6 +1350,73 @@ function ReviewPanel({
   );
 }
 
+
+function DeveloperReplyEditor({
+  review,
+  saving,
+  onSave,
+}: {
+  review: AdminReview;
+  saving: boolean;
+  onSave: (params: {
+    review: AdminReview;
+    developerReply: string;
+    developerReplyVisible: boolean;
+  }) => void;
+}) {
+  const [developerReply, setDeveloperReply] = useState(review.developer_comment ?? "");
+  const [developerReplyVisible, setDeveloperReplyVisible] = useState(
+    !!review.developer_comment_visible
+  );
+
+  useEffect(() => {
+    setDeveloperReply(review.developer_comment ?? "");
+    setDeveloperReplyVisible(!!review.developer_comment_visible);
+  }, [review.id, review.developer_comment, review.developer_comment_visible]);
+
+  const trimmedReply = developerReply.trim();
+  const changed =
+    trimmedReply !== (review.developer_comment ?? "") ||
+    developerReplyVisible !== !!review.developer_comment_visible;
+
+  return (
+    <div style={developerReplyEditorStyle}>
+      <textarea
+        value={developerReply}
+        onChange={(e) => setDeveloperReply(e.target.value)}
+        placeholder="修正しました、対応予定です、など"
+        rows={3}
+        style={developerReplyTextareaStyle}
+      />
+
+      <label style={developerReplyVisibleLabelStyle}>
+        <input
+          type="checkbox"
+          checked={developerReplyVisible}
+          disabled={trimmedReply.length === 0}
+          onChange={(e) => setDeveloperReplyVisible(e.target.checked)}
+        />
+        LPに表示
+      </label>
+
+      <button
+        type="button"
+        disabled={saving || !changed}
+        onClick={() =>
+          onSave({
+            review,
+            developerReply,
+            developerReplyVisible,
+          })
+        }
+        style={developerReplySaveButtonStyle(saving || !changed)}
+      >
+        {saving ? "保存中" : "保存"}
+      </button>
+    </div>
+  );
+}
+
 function ContactPanel({
   contacts,
   totalCount,
@@ -1101,6 +1426,7 @@ function ContactPanel({
   onFilterChange,
   onSearchChange,
   onToggleResolved,
+  onSaveReplyMemo,
 }: {
   contacts: AdminContactMessage[];
   totalCount: number;
@@ -1110,6 +1436,10 @@ function ContactPanel({
   onFilterChange: (value: "all" | "open" | "resolved") => void;
   onSearchChange: (value: string) => void;
   onToggleResolved: (contact: AdminContactMessage) => void;
+  onSaveReplyMemo: (params: {
+    contact: AdminContactMessage;
+    replyMemo: string;
+  }) => void;
 }) {
   return (
     <div style={panelRootStyle}>
@@ -1160,7 +1490,8 @@ function ContactPanel({
                 <Th style={emailColumnStyle}>メール</Th>
                 <Th style={categoryColumnStyle}>カテゴリ</Th>
                 <Th style={commentColumnStyle}>内容</Th>
-                <StickyRightTh>対応</StickyRightTh>
+                <Th style={contactReplyMemoColumnStyle}>返信メモ</Th>
+                <Th style={actionColumnStyle}>対応</Th>
               </tr>
             </thead>
             <tbody>
@@ -1193,13 +1524,11 @@ function ContactPanel({
                   </Td>
 
                   <Td style={emailColumnStyle}>
-                    <div style={emailCellStyle}>
-                      {contact.email || "-"}
-                    </div>
+                    <ContactEmailCell contact={contact} />
                   </Td>
 
                   <Td style={categoryColumnStyle}>
-                    {contact.category || "-"}
+                    {getContactCategoryLabel(contact.category)}
                   </Td>
 
                   <Td style={commentColumnStyle}>
@@ -1208,7 +1537,15 @@ function ContactPanel({
                     </div>
                   </Td>
 
-                  <StickyRightTd>
+                  <Td style={contactReplyMemoColumnStyle}>
+                    <ContactReplyMemoEditor
+                      contact={contact}
+                      saving={savingId === contact.id}
+                      onSave={onSaveReplyMemo}
+                    />
+                  </Td>
+
+                  <Td style={actionColumnStyle}>
                     <button
                       type="button"
                       onClick={() => onToggleResolved(contact)}
@@ -1217,13 +1554,92 @@ function ContactPanel({
                     >
                       {savingId === contact.id ? "更新中" : contact.resolved ? "対応済み" : "対応する"}
                     </button>
-                  </StickyRightTd>
+                  </Td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+function ContactEmailCell({ contact }: { contact: AdminContactMessage }) {
+  const email = contact.email?.trim();
+
+  if (!email) {
+    return <span>-</span>;
+  }
+
+  return (
+    <div style={emailCellStyle}>
+      <div style={emailTextStyle}>{email}</div>
+      <div style={emailActionGroupStyle}>
+        <button
+          type="button"
+          onClick={() => {
+            void copyTextToClipboard(buildContactReplyCopyText(contact));
+          }}
+          style={emailActionButtonStyle}
+        >
+          返信内容をコピー
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ContactReplyMemoEditor({
+  contact,
+  saving,
+  onSave,
+}: {
+  contact: AdminContactMessage;
+  saving: boolean;
+  onSave: (params: {
+    contact: AdminContactMessage;
+    replyMemo: string;
+  }) => void;
+}) {
+  const [replyMemo, setReplyMemo] = useState(contact.reply_memo ?? "");
+
+  useEffect(() => {
+    setReplyMemo(contact.reply_memo ?? "");
+  }, [contact.id, contact.reply_memo]);
+
+  const trimmedMemo = replyMemo.trim();
+  const changed = trimmedMemo !== (contact.reply_memo ?? "");
+
+  return (
+    <div style={replyMemoEditorStyle}>
+      {contact.replied_at && (
+        <div style={replyMemoDateStyle}>
+          返信日時: {formatDateTime(contact.replied_at)}
+        </div>
+      )}
+
+      <textarea
+        value={replyMemo}
+        onChange={(e) => setReplyMemo(e.target.value)}
+        placeholder="Gmailで返信した内容をメモ"
+        rows={3}
+        style={replyMemoTextareaStyle}
+      />
+
+      <button
+        type="button"
+        disabled={saving || !changed}
+        onClick={() =>
+          onSave({
+            contact,
+            replyMemo,
+          })
+        }
+        style={replyMemoSaveButtonStyle(saving || !changed)}
+      >
+        {saving ? "保存中" : "保存"}
+      </button>
     </div>
   );
 }
@@ -1697,7 +2113,7 @@ const tableWrapStyle: CSSProperties = {
 
 const tableStyle: CSSProperties = {
   width: "100%",
-  minWidth: 1148,
+  minWidth: 1568,
   tableLayout: "fixed",
   borderCollapse: "separate",
   borderSpacing: 0,
@@ -1721,7 +2137,7 @@ const reviewTableWrapStyle: CSSProperties = {
 
 const reviewTableStyle: CSSProperties = {
   ...tableStyle,
-  minWidth: 1148,
+  minWidth: 1388,
 };
 
 const reviewAllowColumnStyle: CSSProperties = {
@@ -1729,6 +2145,12 @@ const reviewAllowColumnStyle: CSSProperties = {
   minWidth: REVIEW_ALLOW_COLUMN_WIDTH,
   maxWidth: REVIEW_ALLOW_COLUMN_WIDTH,
   textAlign: "center",
+};
+
+const developerReplyColumnStyle: CSSProperties = {
+  width: 260,
+  minWidth: 260,
+  maxWidth: 260,
 };
 
 const reviewActionColumnStyle: CSSProperties = {
@@ -1893,10 +2315,23 @@ const categoryColumnStyle: CSSProperties = {
 };
 
 const emailColumnStyle: CSSProperties = {
-  width: 180,
-  minWidth: 180,
-  maxWidth: 180,
+  width: 190,
+  minWidth: 190,
+  maxWidth: 190,
   overflowWrap: "anywhere",
+};
+
+const contactReplyMemoColumnStyle: CSSProperties = {
+  width: 260,
+  minWidth: 260,
+  maxWidth: 260,
+};
+
+const actionColumnStyle: CSSProperties = {
+  width: 120,
+  minWidth: 120,
+  maxWidth: 120,
+  textAlign: "center",
 };
 
 const commentColumnStyle: CSSProperties = {
@@ -1911,9 +2346,38 @@ const nameCellStyle: CSSProperties = {
 };
 
 const emailCellStyle: CSSProperties = {
+  display: "grid",
+  gap: 6,
   whiteSpace: "normal",
   wordBreak: "break-word",
   overflowWrap: "anywhere",
+};
+
+const emailTextStyle: CSSProperties = {
+  color: "#374151",
+  fontSize: 12,
+  fontWeight: 800,
+  lineHeight: 1.45,
+  overflowWrap: "anywhere",
+};
+
+const emailActionGroupStyle: CSSProperties = {
+  display: "flex",
+  gap: 6,
+  flexWrap: "wrap",
+};
+
+const emailActionButtonStyle: CSSProperties = {
+  minHeight: 26,
+  padding: "0 8px",
+  borderRadius: 8,
+  border: "1px solid #d1d5db",
+  background: "#ffffff",
+  color: "#374151",
+  font: "inherit",
+  fontSize: 12,
+  fontWeight: 900,
+  cursor: "pointer",
 };
 
 const commentCellStyle: CSSProperties = {
@@ -1944,6 +2408,52 @@ const starStyle: CSSProperties = {
   fontWeight: 900,
   whiteSpace: "nowrap",
 };
+
+
+const developerReplyEditorStyle: CSSProperties = {
+  display: "grid",
+  gap: 6,
+};
+
+const developerReplyTextareaStyle: CSSProperties = {
+  width: "100%",
+  minHeight: 70,
+  resize: "vertical",
+  boxSizing: "border-box",
+  border: "1px solid #d1d5db",
+  borderRadius: 10,
+  padding: "8px 9px",
+  font: "inherit",
+  fontSize: 12,
+  lineHeight: 1.5,
+  color: "#111827",
+  background: "#ffffff",
+};
+
+const developerReplyVisibleLabelStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+  color: "#4b5563",
+  fontSize: 12,
+  fontWeight: 800,
+};
+
+function developerReplySaveButtonStyle(disabled: boolean): CSSProperties {
+  return {
+    width: "fit-content",
+    minHeight: 30,
+    padding: "0 12px",
+    borderRadius: 999,
+    border: "none",
+    background: disabled ? "#e5e7eb" : "#111827",
+    color: disabled ? "#9ca3af" : "#ffffff",
+    font: "inherit",
+    fontSize: 12,
+    fontWeight: 900,
+    cursor: disabled ? "default" : "pointer",
+  };
+}
 
 const decisionButtonGroupStyle: CSSProperties = {
   display: "flex",
@@ -2013,6 +2523,48 @@ function rejectButtonStyle(rejected: boolean, saving: boolean): CSSProperties {
     fontWeight: 900,
     cursor: saving ? "default" : "pointer",
     opacity: saving ? 0.6 : 1,
+  };
+}
+
+const replyMemoEditorStyle: CSSProperties = {
+  display: "grid",
+  gap: 6,
+};
+
+const replyMemoDateStyle: CSSProperties = {
+  color: "#6b7280",
+  fontSize: 11,
+  fontWeight: 800,
+};
+
+const replyMemoTextareaStyle: CSSProperties = {
+  width: "100%",
+  minHeight: 70,
+  resize: "vertical",
+  boxSizing: "border-box",
+  border: "1px solid #d1d5db",
+  borderRadius: 10,
+  padding: "8px 9px",
+  font: "inherit",
+  fontSize: 12,
+  lineHeight: 1.5,
+  color: "#111827",
+  background: "#ffffff",
+};
+
+function replyMemoSaveButtonStyle(disabled: boolean): CSSProperties {
+  return {
+    width: "fit-content",
+    minHeight: 30,
+    padding: "0 12px",
+    borderRadius: 999,
+    border: "none",
+    background: disabled ? "#e5e7eb" : "#111827",
+    color: disabled ? "#9ca3af" : "#ffffff",
+    font: "inherit",
+    fontSize: 12,
+    fontWeight: 900,
+    cursor: disabled ? "default" : "pointer",
   };
 }
 

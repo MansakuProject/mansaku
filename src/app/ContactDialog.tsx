@@ -21,7 +21,7 @@ function getContactLabels(language: string | undefined) {
       name: "お名前",
       namePlaceholder: "任意",
       email: "メールアドレス",
-      emailPlaceholder: "任意。返信が必要な場合のみ",
+      emailPlaceholder: "返信先メールアドレス",
       category: "種別",
       categories: [
         { value: "bug", label: "不具合報告" },
@@ -46,7 +46,7 @@ function getContactLabels(language: string | undefined) {
     name: "Name",
     namePlaceholder: "Optional",
     email: "Email",
-    emailPlaceholder: "Optional. Required for replies",
+    emailPlaceholder: "Reply email address",
     category: "Category",
     categories: [
       { value: "bug", label: "Bug report" },
@@ -96,7 +96,7 @@ export async function submitMansakuContact(payload: ContactSubmitPayload) {
     },
     body: JSON.stringify({
       name: payload.name || null,
-      email: payload.email || null,
+      email: payload.email,
       category: payload.category,
       message: payload.message,
       resolved: false,
@@ -142,6 +142,7 @@ export function ContactDialog({
 
   const isLocked = submitState === "sending" || submitState === "done";
   const canSubmit =
+    email.trim().length > 0 &&
     message.trim().length > 0 &&
     submitState !== "sending" &&
     submitState !== "done";
@@ -275,6 +276,7 @@ export function ContactDialog({
             value={email}
             onChange={(e) => setEmail(e.target.value.slice(0, 160))}
             disabled={isLocked}
+            required
             placeholder={labels.emailPlaceholder}
             style={inputStyle}
           />

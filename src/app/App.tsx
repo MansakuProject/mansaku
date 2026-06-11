@@ -139,6 +139,15 @@ import { TEMPLATE_DEFINITIONS } from "./templates";
 
 import { HelpModal } from "./HelpModal";
 import {
+  ReviewDialog,
+  REVIEW_LOCAL_STORAGE_KEYS,
+  getReviewStorageItem,
+  setReviewStorageItem,
+  submitMansakuReview,
+  type ReviewExportType,
+  type ReviewSubmitPayload,
+} from "./ReviewDialog";
+import {
   initializeAnalytics,
   trackAppOpen,
   trackBubbleAdd,
@@ -4164,43 +4173,7 @@ type HistorySnapshot = {
 };
 
 
-type ReviewExportType = "png" | "pdf";
-
-type ReviewSubmitPayload = {
-  rating: number;
-  comment: string;
-  display_name: string;
-  allow_publish: boolean;
-  source: "app";
-  app_version: string;
-  export_type: ReviewExportType | null;
-};
-
-const REVIEW_LOCAL_STORAGE_KEYS = {
-  lastShownAt: "mansaku.reviewLastShownAt",
-  submittedAt: "mansaku.reviewSubmittedAt",
-  submittedVersion: "mansaku.reviewSubmittedVersion",
-  dismissedForever: "mansaku.reviewDismissedForever",
-  localQueue: "mansaku.reviewLocalQueue",
-} as const;
-
 const REVIEW_RESUBMIT_INTERVAL_DAYS = 90;
-
-function getReviewStorageItem(key: string) {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
-function setReviewStorageItem(key: string, value: string) {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    // 保存できない環境では何もしない
-  }
-}
 
 function isSameReviewDate(leftIso: string | null, right: Date) {
   if (!leftIso) return false;
@@ -4267,43 +4240,6 @@ function markReviewSubmitted(appVersion: string) {
   const now = new Date().toISOString();
   setReviewStorageItem(REVIEW_LOCAL_STORAGE_KEYS.submittedAt, now);
   setReviewStorageItem(REVIEW_LOCAL_STORAGE_KEYS.submittedVersion, appVersion);
-}
-
-async function submitReview(payload: ReviewSubmitPayload) {
-  const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, "");
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    const saved = getReviewStorageItem(REVIEW_LOCAL_STORAGE_KEYS.localQueue);
-    const queue = saved ? JSON.parse(saved) as ReviewSubmitPayload[] : [];
-    queue.push(payload);
-    setReviewStorageItem(REVIEW_LOCAL_STORAGE_KEYS.localQueue, JSON.stringify(queue));
-    return;
-  }
-
-  const response = await fetch(`${supabaseUrl}/rest/v1/reviews`, {
-    method: "POST",
-    headers: {
-      apikey: supabaseAnonKey,
-      Authorization: `Bearer ${supabaseAnonKey}`,
-      "Content-Type": "application/json",
-      Prefer: "return=minimal",
-    },
-    body: JSON.stringify({
-      rating: payload.rating,
-      comment: payload.comment,
-      display_name: payload.display_name,
-      allow_publish: payload.allow_publish,
-      approved: false,
-      source: payload.source,
-      app_version: APP_VERSION,
-      export_type: payload.export_type,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`review_submit_failed:${response.status}`);
-  }
 }
 
 export default function App() {
@@ -4835,59 +4771,10 @@ export default function App() {
   const t = createTranslator(language);
 
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
-  const [reviewRating, setReviewRating] = useState(5);
-  const [reviewComment, setReviewComment] = useState("");
-  const [reviewDisplayName, setReviewDisplayName] = useState("");
-  const [reviewAllowPublish, setReviewAllowPublish] = useState(false);
-  const [reviewSubmitState, setReviewSubmitState] = useState<"idle" | "sending" | "done" | "error">("idle");
-  const reviewExportTypeRef = useRef<ReviewExportType | null>(null);
-
-  const reviewLabels = useMemo(() => {
-    if (language === "ja") {
-      return {
-        title: "Mansakuはいかがでしたか？",
-        description: "よければ、評価と感想を送ってください。今後の改善に使います。",
-        rating: "評価",
-        comment: "コメント",
-        commentPlaceholder: "使ってみた感想、よかった点、気になった点など",
-        displayName: "表示名",
-        displayNamePlaceholder: "匿名",
-        allowPublish: "サイトに掲載してもよい",
-        publishNote: "掲載する場合も、承認後に公開します。",
-        submit: "送信",
-        later: "あとで",
-        dismissForever: "今後表示しない",
-        sending: "送信中...",
-        done: "ありがとうございました。",
-        error: "送信できませんでした。時間をおいて再度お試しください。",
-      };
-    }
-
-    return {
-      title: "How was Mansaku?",
-      description: "Please send a rating and comment. It helps improve Mansaku.",
-      rating: "Rating",
-      comment: "Comment",
-      commentPlaceholder: "What worked well? What felt confusing?",
-      displayName: "Display name",
-      displayNamePlaceholder: "Anonymous",
-      allowPublish: "Allow this comment to be shown on the website",
-      publishNote: "Comments are published only after approval.",
-      submit: "Send",
-      later: "Later",
-      dismissForever: "Don't show again",
-      sending: "Sending...",
-      done: "Thank you.",
-      error: "Could not send. Please try again later.",
-    };
-  }, [language]);
+  const reviewExportTypeRef = useRef<ReviewExportType>(null);
 
   const resetReviewForm = () => {
-    setReviewRating(5);
-    setReviewComment("");
-    setReviewDisplayName("");
-    setReviewAllowPublish(false);
-    setReviewSubmitState("idle");
+    // 入力欄の初期化は共通ReviewDialog側で行う
   };
 
   const requestReviewPromptAfterExport = (exportType: ReviewExportType) => {
@@ -4914,37 +4801,20 @@ export default function App() {
     trackReviewPromptDismissForever(reviewExportTypeRef.current);
   };
 
-  const handleReviewSubmit = async () => {
-    if (reviewSubmitState === "sending") return;
+  const handleReviewSubmit = async (
+    payload: Omit<ReviewSubmitPayload, "source">
+  ) => {
+    trackReviewSubmit(payload.rating, reviewExportTypeRef.current);
 
-    const comment = reviewComment.trim();
-    const displayName = reviewDisplayName.trim();
+    await submitMansakuReview({
+      ...payload,
+      source: "app",
+      app_version: APP_VERSION,
+      export_type: reviewExportTypeRef.current,
+    });
 
-    setReviewSubmitState("sending");
-    trackReviewSubmit(reviewRating, reviewExportTypeRef.current);
-
-    try {
-      await submitReview({
-        rating: reviewRating,
-        comment,
-        display_name: displayName || "匿名",
-        allow_publish: reviewAllowPublish,
-        source: "app",
-        app_version: APP_VERSION,
-        export_type: reviewExportTypeRef.current,
-      });
-
-      markReviewSubmitted(APP_VERSION);
-      setReviewSubmitState("done");
-      trackReviewSubmitSuccess(reviewRating, reviewExportTypeRef.current);
-
-      window.setTimeout(() => {
-        setReviewDialogOpen(false);
-      }, 900);
-    } catch (error) {
-      console.error(error);
-      setReviewSubmitState("error");
-    }
+    markReviewSubmitted(APP_VERSION);
+    trackReviewSubmitSuccess(payload.rating, reviewExportTypeRef.current);
   };
 
   const [restoreNoticeToken, setRestoreNoticeToken] = useState(0);
@@ -7248,8 +7118,11 @@ useLayoutEffect(() => {
     setOpenEditorSectionKey(null);
   };
 
-  const clearEditorSelectionAndFocusMain = () => {
-    fitSelectedBubbleSizeBeforeLeavingEditor();
+  const clearEditorSelectionAndFocusMain = (options?: { fitBubble?: boolean }) => {
+    if (options?.fitBubble !== false) {
+      fitSelectedBubbleSizeBeforeLeavingEditor();
+    }
+
     setMainMode("manga");
     setActiveTargetType("canvas");
     setSelectedFrameImageCardId(null);
@@ -7268,7 +7141,7 @@ useLayoutEffect(() => {
     });
   };
 
-    const clearAllSelectionAndMenus = () => {
+  const clearAllSelectionAndMenus = () => {
     setSelectedFrameImageCardId(null);
     setSelectedItems([]);
     setOpenEditorSectionKey(null);
@@ -22879,14 +22752,14 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                             dataFocusRole="editor-delete"
                             onClick={() => {
                               handleDeleteBubble(selectedBubble.id);
-                              clearEditorSelectionAndFocusMain();
+                              clearEditorSelectionAndFocusMain({ fitBubble: false });
                             }}
                             style={{ color: "#b91c1c" }}
                           >
                             <TrashSvgIcon />
                           </ToolbarIconButton>
 
-                          <ToolbarIconButton title={t("close")} dataFocusRole="editor-close" onClick={clearEditorSelectionAndFocusMain}>
+                          <ToolbarIconButton title={t("close")} dataFocusRole="editor-close" onClick={() => clearEditorSelectionAndFocusMain()}>
                             <CloseSvgIcon />
                           </ToolbarIconButton>
                         </div>
@@ -23930,7 +23803,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                             <TrashSvgIcon />
                           </ToolbarIconButton>
 
-                          <ToolbarIconButton title={t("close")} dataFocusRole="editor-close" onClick={clearEditorSelectionAndFocusMain}>
+                          <ToolbarIconButton title={t("close")} dataFocusRole="editor-close" onClick={() => clearEditorSelectionAndFocusMain()}>
                             <CloseSvgIcon />
                           </ToolbarIconButton>
                         </div>
@@ -24304,9 +24177,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                           <ToolbarIconButton
                             title={t("reset")}
                             dataFocusRole="editor-reset"
-                            disabled={!selectedFrameHasImage}
                             onClick={() => {
-                              if (!selectedFrameHasImage) return;
                               resetFrameImage(selectedFrame.id);
                             }}
                           >
@@ -24333,7 +24204,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                             <TrashSvgIcon />
                           </ToolbarIconButton>
 
-                          <ToolbarIconButton title={t("close")} dataFocusRole="editor-close" onClick={clearEditorSelectionAndFocusMain}>
+                          <ToolbarIconButton title={t("close")} dataFocusRole="editor-close" onClick={() => clearEditorSelectionAndFocusMain()}>
                             <CloseSvgIcon />
                           </ToolbarIconButton>
                         </div>
@@ -26383,268 +26254,14 @@ onClick={(e) => {
 
 
 
-      {reviewDialogOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={reviewLabels.title}
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) {
-              closeReviewDialog();
-            }
-          }}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 120000,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 20,
-            background: "rgba(17, 24, 39, 0.38)",
-            boxSizing: "border-box",
-          }}
-        >
-          <div
-            style={{
-              width: "min(460px, 100%)",
-              borderRadius: 16,
-              background: "#ffffff",
-              boxShadow: "0 24px 64px rgba(0,0,0,0.28)",
-              padding: 22,
-              boxSizing: "border-box",
-              color: "#111827",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                justifyContent: "space-between",
-                gap: 12,
-                marginBottom: 8,
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 800 }}>
-                  {reviewLabels.title}
-                </div>
-                <div style={{ marginTop: 6, fontSize: 13, lineHeight: 1.6, color: "#4b5563" }}>
-                  {reviewLabels.description}
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={closeReviewDialog}
-                style={{
-                  width: 32,
-                  height: 32,
-                  border: "none",
-                  borderRadius: 8,
-                  background: "transparent",
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#374151",
-                  flexShrink: 0,
-                }}
-                aria-label={reviewLabels.later}
-              >
-                <CloseSvgIcon />
-              </button>
-            </div>
-
-            <div style={{ marginTop: 18 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
-                {reviewLabels.rating}
-              </div>
-              <div style={{ display: "flex", gap: 4 }}>
-                {[1, 2, 3, 4, 5].map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setReviewRating(value)}
-                    disabled={reviewSubmitState === "sending"}
-                    aria-label={`${value} / 5`}
-                    style={{
-                      all: "unset",
-                      width: 38,
-                      height: 38,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      borderRadius: 8,
-                      cursor: reviewSubmitState === "sending" ? "default" : "pointer",
-                      fontSize: 28,
-                      lineHeight: 1,
-                      color: value <= reviewRating ? "#f59e0b" : "#d1d5db",
-                    }}
-                  >
-                    ★
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <label style={{ display: "block", marginTop: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
-                {reviewLabels.comment}
-              </div>
-              <textarea
-                value={reviewComment}
-                onChange={(e) => setReviewComment(e.target.value.slice(0, 1000))}
-                disabled={reviewSubmitState === "sending" || reviewSubmitState === "done"}
-                placeholder={reviewLabels.commentPlaceholder}
-                style={{
-                  width: "100%",
-                  minHeight: 96,
-                  resize: "vertical",
-                  padding: "10px 12px",
-                  border: "1px solid #d1d5db",
-                  borderRadius: 10,
-                  boxSizing: "border-box",
-                  fontSize: 14,
-                  fontFamily: "inherit",
-                  lineHeight: 1.6,
-                  outline: "none",
-                }}
-              />
-            </label>
-
-            <label style={{ display: "block", marginTop: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
-                {reviewLabels.displayName}
-              </div>
-              <input
-                type="text"
-                value={reviewDisplayName}
-                onChange={(e) => setReviewDisplayName(e.target.value.slice(0, 60))}
-                disabled={reviewSubmitState === "sending" || reviewSubmitState === "done"}
-                placeholder={reviewLabels.displayNamePlaceholder}
-                style={{
-                  width: "100%",
-                  padding: "9px 12px",
-                  border: "1px solid #d1d5db",
-                  borderRadius: 10,
-                  boxSizing: "border-box",
-                  fontSize: 14,
-                  fontFamily: "inherit",
-                  outline: "none",
-                }}
-              />
-            </label>
-
-            <label
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 9,
-                marginTop: 14,
-                fontSize: 13,
-                lineHeight: 1.5,
-                color: "#374151",
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={reviewAllowPublish}
-                onChange={(e) => setReviewAllowPublish(e.target.checked)}
-                disabled={reviewSubmitState === "sending" || reviewSubmitState === "done"}
-                style={{ marginTop: 3 }}
-              />
-              <span>
-                {reviewLabels.allowPublish}
-                <span style={{ display: "block", color: "#6b7280" }}>
-                  {reviewLabels.publishNote}
-                </span>
-              </span>
-            </label>
-
-            {reviewSubmitState === "done" && (
-              <div style={{ marginTop: 14, fontSize: 13, color: "#047857" }}>
-                {reviewLabels.done}
-              </div>
-            )}
-
-            {reviewSubmitState === "error" && (
-              <div style={{ marginTop: 14, fontSize: 13, color: "#b91c1c" }}>
-                {reviewLabels.error}
-              </div>
-            )}
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 10,
-                marginTop: 20,
-                flexWrap: "wrap",
-              }}
-            >
-              <button
-                type="button"
-                onClick={dismissReviewForever}
-                disabled={reviewSubmitState === "sending"}
-                style={{
-                  border: "none",
-                  background: "transparent",
-                  color: "#6b7280",
-                  fontSize: 13,
-                  cursor: reviewSubmitState === "sending" ? "default" : "pointer",
-                  padding: "8px 0",
-                }}
-              >
-                {reviewLabels.dismissForever}
-              </button>
-
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  type="button"
-                  onClick={closeReviewDialog}
-                  disabled={reviewSubmitState === "sending"}
-                  style={{
-                    minWidth: 88,
-                    height: 36,
-                    border: "1px solid #d1d5db",
-                    borderRadius: 10,
-                    background: "#ffffff",
-                    cursor: reviewSubmitState === "sending" ? "default" : "pointer",
-                    fontFamily: "inherit",
-                    fontSize: 14,
-                  }}
-                >
-                  {reviewLabels.later}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleReviewSubmit}
-                  disabled={reviewSubmitState === "sending" || reviewSubmitState === "done"}
-                  style={{
-                    minWidth: 96,
-                    height: 36,
-                    border: "none",
-                    borderRadius: 10,
-                    background: reviewSubmitState === "done" ? "#9ca3af" : "#2563eb",
-                    color: "#ffffff",
-                    cursor:
-                      reviewSubmitState === "sending" || reviewSubmitState === "done"
-                        ? "default"
-                        : "pointer",
-                    fontFamily: "inherit",
-                    fontSize: 14,
-                    fontWeight: 700,
-                  }}
-                >
-                  {reviewSubmitState === "sending" ? reviewLabels.sending : reviewLabels.submit}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ReviewDialog
+        open={reviewDialogOpen}
+        language={language}
+        showDismissForever={true}
+        onClose={closeReviewDialog}
+        onDismissForever={dismissReviewForever}
+        onSubmit={handleReviewSubmit}
+      />
 
       {exportProgress && (
         <div

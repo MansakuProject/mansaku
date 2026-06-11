@@ -3,12 +3,58 @@ import type { MouseEvent } from "react";
 import { ContactDialog, submitMansakuContact } from "./app/ContactDialog";
 import {
   ReviewDialog,
-  fetchApprovedMansakuReviews,
   fetchMansakuReviewSummary,
   submitMansakuReview,
   type MansakuReviewSummary,
-  type PublicMansakuReview,
 } from "./app/ReviewDialog";
+
+type PublicMansakuReviewWithDeveloperReply = {
+  id: number | string;
+  rating: number;
+  comment: string | null;
+  display_name: string | null;
+  developer_comment?: string | null;
+  developer_comment_visible?: boolean | null;
+};
+
+function getSupabaseConfig() {
+  const url = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, "");
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+
+  return { url, anonKey };
+}
+
+async function fetchApprovedMansakuReviewsWithDeveloperReply(
+  limit: number
+): Promise<PublicMansakuReviewWithDeveloperReply[]> {
+  const { url, anonKey } = getSupabaseConfig();
+  if (!url || !anonKey) return [];
+
+  const select = [
+    "id",
+    "rating",
+    "comment",
+    "display_name",
+    "developer_comment",
+    "developer_comment_visible",
+  ].join(",");
+
+  const response = await fetch(
+    `${url}/rest/v1/reviews?select=${encodeURIComponent(select)}&approved=eq.true&allow_publish=eq.true&order=created_at.desc&limit=${limit}`,
+    {
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`review_fetch_failed:${response.status}`);
+  }
+
+  return await response.json();
+}
 
 export function LandingPage() {
   function isSupportedDesktopBrowser() {
@@ -61,7 +107,7 @@ export function LandingPage() {
     setIsContactOpen(false);
   };
 
-  const [publishedReviews, setPublishedReviews] = useState<PublicMansakuReview[]>([]);
+  const [publishedReviews, setPublishedReviews] = useState<PublicMansakuReviewWithDeveloperReply[]>([]);
   const [reviewSummary, setReviewSummary] = useState<MansakuReviewSummary>({
     count: 0,
     averageRating: null,
@@ -73,7 +119,7 @@ export function LandingPage() {
     const loadPublishedReviews = async () => {
       try {
         const [reviews, summary] = await Promise.all([
-          fetchApprovedMansakuReviews(6),
+          fetchApprovedMansakuReviewsWithDeveloperReply(6),
           fetchMansakuReviewSummary(),
         ]);
 
@@ -442,8 +488,7 @@ export function LandingPage() {
                     fontWeight: 700,
                   }}
                 >
-                  平均評価 {reviewSummary.averageRating.toFixed(1)} / 5
-                  {" "}・掲載中 {reviewSummary.count}件
+                  平均評価 ★{reviewSummary.averageRating.toFixed(1)}
                 </p>
               )}
             </div>
@@ -504,6 +549,40 @@ export function LandingPage() {
                   >
                     — {review.display_name || "匿名ユーザー"}
                   </div>
+
+                  {review.developer_comment_visible && review.developer_comment && (
+                    <div
+                      style={{
+                        borderTop: "1px solid #e5e7eb",
+                        paddingTop: 10,
+                        display: "grid",
+                        gap: 4,
+                      }}
+                    >
+                      <div
+                        style={{
+                          color: "#111827",
+                          fontSize: 12,
+                          fontWeight: 900,
+                        }}
+                      >
+                        開発者より
+                      </div>
+
+                      <p
+                        style={{
+                          margin: 0,
+                          color: "#4b5563",
+                          fontSize: 13,
+                          lineHeight: 1.8,
+                          whiteSpace: "pre-wrap",
+                          overflowWrap: "anywhere",
+                        }}
+                      >
+                        {review.developer_comment}
+                      </p>
+                    </div>
+                  )}
                 </article>
               ))}
             </div>
