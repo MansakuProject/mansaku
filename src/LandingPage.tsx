@@ -27,7 +27,13 @@ function getSupabaseConfig() {
 function isTestModeUrl() {
   if (typeof window === "undefined") return false;
 
-  return new URLSearchParams(window.location.search).get("test") === "1";
+  const params = new URLSearchParams(window.location.search);
+
+  return (
+    params.get("test") === "1" ||
+    window.location.href.includes("?test=1") ||
+    window.location.href.includes("&test=1")
+  );
 }
 
 function getAppLinkHref(isTestMode: boolean) {
@@ -81,7 +87,7 @@ async function fetchApprovedMansakuReviewsWithDeveloperReply(
 
 export function LandingPage() {
   const isTestMode = isTestModeUrl();
-  const isDeveloperLinkVisible = true;
+  const isDeveloperLinkVisible = isTestMode || isLocalHost();
   const appLinkHref = getAppLinkHref(isTestMode);
   const adminLinkHref = getAdminLinkHref(isTestMode);
 
