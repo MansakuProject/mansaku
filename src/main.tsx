@@ -3,7 +3,6 @@ import { createRoot } from "react-dom/client";
 
 import App from "./app/App";
 import { LandingPage } from "./LandingPage";
-import { LegalPage } from "./LegalPage";
 import { AdminPage } from "./AdminPage";
 
 declare global {
@@ -69,10 +68,6 @@ function Root() {
 
   if (pathname === "/admin") {
     return <AdminPage />;
-  }
-
-  if (pathname === "/legal") {
-    return <LegalPage />;
   }
 
   return <LandingPage />;
