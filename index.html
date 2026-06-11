@@ -28,7 +28,10 @@
           location.hostname === "127.0.0.1" ||
           location.hostname === "[::1]";
 
-        if (isLocalhost) return;
+        const isTestMode =
+          new URLSearchParams(location.search).get("test") === "1";
+
+        if (isLocalhost || isTestMode) return;
 
         const script = document.createElement("script");
         script.async = true;
