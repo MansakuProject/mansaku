@@ -14,39 +14,54 @@ declare global {
 }
 
 function isTestModeUrl() {
-  const searchParams = new URLSearchParams(window.location.search);
-  return searchParams.get("test") === "1";
+  return new URLSearchParams(window.location.search).get("test") === "1";
 }
 
-function isLocalHost() {
+function isLocalhost() {
   return (
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1" ||
+    window.location.hostname === "::1" ||
     window.location.hostname === "[::1]"
   );
 }
 
-function initializeTestModeFlags() {
+function initializeRuntimeFlags() {
   const isTestMode = isTestModeUrl();
 
   if (isTestMode) {
-    window.__MANSAKU_TEST_MODE__ = true;
-    window.__MANSAKU_DISABLE_ANALYTICS__ = true;
-
     try {
       sessionStorage.setItem("mansaku_test_mode", "1");
-    } catch {}
+    } catch {
+      // noop
+    }
   }
 
-  if (isLocalHost()) {
-    window.__MANSAKU_DISABLE_ANALYTICS__ = true;
+  let isStoredTestMode = false;
+
+  try {
+    isStoredTestMode = sessionStorage.getItem("mansaku_test_mode") === "1";
+  } catch {
+    // noop
   }
+
+  window.__MANSAKU_TEST_MODE__ = isTestMode || isStoredTestMode;
+  window.__MANSAKU_DISABLE_ANALYTICS__ =
+    isLocalhost() || window.__MANSAKU_TEST_MODE__;
+}
+
+function normalizePathname(pathname: string) {
+  if (pathname.length > 1 && pathname.endsWith("/")) {
+    return pathname.slice(0, -1);
+  }
+
+  return pathname;
 }
 
 function Root() {
-  initializeTestModeFlags();
+  initializeRuntimeFlags();
 
-  const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
+  const pathname = normalizePathname(window.location.pathname);
 
   if (pathname === "/app") {
     return <App />;

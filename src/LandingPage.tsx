@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { MouseEvent } from "react";
 import { ContactDialog, submitMansakuContact } from "./app/ContactDialog";
 import {
@@ -17,13 +17,6 @@ type PublicMansakuReviewWithDeveloperReply = {
   developer_comment_visible?: boolean | null;
 };
 
-declare global {
-  interface Window {
-    __MANSAKU_TEST_MODE__?: boolean;
-    __MANSAKU_DISABLE_ANALYTICS__?: boolean;
-  }
-}
-
 function getSupabaseConfig() {
   const url = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, "");
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -34,16 +27,11 @@ function getSupabaseConfig() {
 function isTestModeUrl() {
   if (typeof window === "undefined") return false;
 
-  if (window.__MANSAKU_TEST_MODE__) return true;
+  return new URLSearchParams(window.location.search).get("test") === "1";
+}
 
-  const searchParams = new URLSearchParams(window.location.search);
-  if (searchParams.get("test") === "1") return true;
-
-  try {
-    return sessionStorage.getItem("mansaku_test_mode") === "1";
-  } catch {
-    return false;
-  }
+function getAppLinkHref(isTestMode: boolean) {
+  return isTestMode ? "/app?test=1" : "/app";
 }
 
 function isLocalHost() {
@@ -51,13 +39,8 @@ function isLocalHost() {
 
   return (
     window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1" ||
-    window.location.hostname === "[::1]"
+    window.location.hostname === "127.0.0.1"
   );
-}
-
-function getAppLinkHref(isTestMode: boolean) {
-  return isTestMode ? "/app?test=1" : "/app";
 }
 
 function getAdminLinkHref() {
@@ -99,20 +82,10 @@ async function fetchApprovedMansakuReviewsWithDeveloperReply(
 export function LandingPage() {
   const isTestMode = isTestModeUrl();
   const isDeveloperLinkVisible = isTestMode || isLocalHost();
-
-  const appLinkHref = useMemo(() => getAppLinkHref(isTestMode), [isTestMode]);
-  const adminLinkHref = useMemo(() => getAdminLinkHref(), []);
+  const appLinkHref = getAppLinkHref(isTestMode);
+  const adminLinkHref = getAdminLinkHref();
 
   useEffect(() => {
-    if (isTestMode) {
-      window.__MANSAKU_TEST_MODE__ = true;
-      window.__MANSAKU_DISABLE_ANALYTICS__ = true;
-
-      try {
-        sessionStorage.setItem("mansaku_test_mode", "1");
-      } catch {}
-    }
-
     document.title = isTestMode ? "Mansaku（テスト）" : "Mansaku";
   }, [isTestMode]);
 
@@ -790,6 +763,7 @@ export function LandingPage() {
             >
               開発を支援する
             </a>
+
           </div>
         </article>
       </section>
@@ -873,6 +847,7 @@ export function LandingPage() {
           </div>
         </div>
       </footer>
+
 
       {isUnsupportedDeviceOpen && (
         <div

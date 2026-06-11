@@ -25,21 +25,15 @@
     <script>
       (function () {
         const searchParams = new URLSearchParams(window.location.search);
-        const isTestMode = searchParams.get("test") === "1";
 
         const isLocalhost =
           window.location.hostname === "localhost" ||
           window.location.hostname === "127.0.0.1" ||
           window.location.hostname === "[::1]";
 
-        window.__MANSAKU_TEST_MODE__ = isTestMode;
-        window.__MANSAKU_DISABLE_ANALYTICS__ = isLocalhost || isTestMode;
+        const isTestMode = searchParams.get("test") === "1";
 
-        try {
-          if (isTestMode) {
-            sessionStorage.setItem("mansaku_test_mode", "1");
-          }
-        } catch {}
+        window.__MANSAKU_DISABLE_ANALYTICS__ = isLocalhost || isTestMode;
 
         if (window.__MANSAKU_DISABLE_ANALYTICS__) {
           window.dataLayer = [];
