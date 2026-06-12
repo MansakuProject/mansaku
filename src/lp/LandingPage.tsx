@@ -49,7 +49,21 @@ function getInitialLandingLanguage(): AppLanguage {
     return pathLanguage;
   }
 
-  return "ja";
+  const browserLanguages =
+    navigator.languages && navigator.languages.length > 0
+      ? navigator.languages
+      : [navigator.language];
+
+  for (const browserLanguage of browserLanguages) {
+    const primaryLanguage = browserLanguage.split("-")[0];
+    const normalized = normalizeAppLanguage(primaryLanguage);
+
+    if (normalized === primaryLanguage) {
+      return normalized;
+    }
+  }
+
+  return "en";
 }
 
 function getHtmlLang(language: AppLanguage) {
