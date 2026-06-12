@@ -221,6 +221,23 @@ export function HelpModal({ onClose, language }: HelpModalProps) {
       ),
     },
     {
+      id: "frameEffectLine",
+      title: t("help.frameEffectLine.title"),
+      body: (
+        <HelpCard title={t("help.frameEffectLine.title")}>
+          <ul style={listStyle}>
+            <li>{t("help.frameEffectLine.open")}</li>
+            <li>{t("help.frameEffectLine.kind")}</li>
+            <li>{t("help.frameEffectLine.density")}</li>
+            <li>{t("help.frameEffectLine.blank")}</li>
+            <li>{t("help.frameEffectLine.color")}</li>
+            <li>{t("help.frameEffectLine.handles")}</li>
+            <li>{t("help.frameEffectLine.mode")}</li>
+          </ul>
+        </HelpCard>
+      ),
+    },
+    {
       id: "bubbles",
       title: t("help.bubbles.title"),
       body: (

@@ -89,6 +89,17 @@ import {
 } from "./pageUtils";
 
 import {
+  FRAME_EFFECT_LINE_COLOR_MODES,
+  FRAME_EFFECT_LINE_DEFAULTS,
+  FRAME_EFFECT_LINE_KINDS,
+  FrameEffectLineLayer,
+  getFrameEffectLineFields,
+  getFrameEffectLineKindLabel,
+  type FrameEffectLineColorMode,
+  type FrameEffectLineKind,
+} from "./frameEffectLine";
+
+import {
   SOUND_STYLE_PRESETS,
   SOUND_STYLE_ORDER,
   DEFAULT_SOUND_STYLE_KEY,
@@ -237,6 +248,12 @@ import {
   PdfFileSvgIcon,
   DownloadIcon,
   FreeTextColorSvgIcon,
+  NoneSvgIcon,
+  FocusLineSvgIcon,
+  SpeedLineSvgIcon,
+  WhiteFillSvgIcon,
+  BlackFillSvgIcon,
+  RainbowFillSvgIcon,
 } from "./svgIcons";
 
 import {
@@ -2319,7 +2336,7 @@ function getFreeBubbleBackgroundColor(bubble: Bubble) {
 }
 
 function getFreeBubbleTone(bubble: Bubble) {
-  return clamp(getFreeBubbleBackgroundFields(bubble).freeBubbleTone ?? 0, 0, 100);
+  return clamp(getFreeBubbleBackgroundFields(bubble).freeBubbleTone ?? 100, 0, 100);
 }
 
 function getFreeBubbleBorderEnabled(bubble: Bubble) {
@@ -2428,7 +2445,7 @@ function withFreeBubbleBackgroundColor(
     blackTone: color == null ? bubble.blackTone ?? 0 : 0,
     backgroundColor: color == null ? bubble.backgroundColor ?? "white" : "transparent",
     freeBubbleBackgroundColor: storedColor,
-    freeBubbleTone: color == null ? undefined : patch.freeBubbleTone ?? fields.freeBubbleTone ?? 0,
+    freeBubbleTone: color == null ? undefined : patch.freeBubbleTone ?? fields.freeBubbleTone ?? 100,
     freeBubbleBorderEnabled:
       patch.freeBubbleBorderEnabled ?? fields.freeBubbleBorderEnabled ?? false,
     freeBubbleBorderColor:
@@ -2752,7 +2769,7 @@ function FreeRgbTextColorEditor({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
       <ColorPaletteField
-        label={t("textColor")}
+        label={t("colorText")}
         value={fillColor}
         onChange={onFillColorChange}
       />
@@ -4019,7 +4036,7 @@ function CollapsibleEditorSection({
         setOpenSectionKey(sectionKey);
       }}
       onBlurCapture={(e) => {
-        if (sectionKey === "frame-image-move-copy") {
+        if (sectionKey === "frame-image-move-copy" || sectionKey === "frame-effect-line") {
           const sectionElement = sectionRef.current;
           const nextTarget = e.relatedTarget as HTMLElement | null;
 
@@ -4028,6 +4045,13 @@ function CollapsibleEditorSection({
           }
 
           if (sectionElement && sectionElement.contains(nextTarget)) {
+            return;
+          }
+
+          if (
+            sectionKey === "frame-effect-line" &&
+            nextTarget.closest("[data-focus-layer='canvas'], [data-canvas-focus-object='true']")
+          ) {
             return;
           }
         }
@@ -5388,7 +5412,7 @@ export default function App() {
 
       frameId = window.requestAnimationFrame(() => {
         const toneSlider = editorPanelScrollRef.current?.querySelector<HTMLInputElement>(
-          "#mansaku-slider-bubble-white-tone, #mansaku-slider-bubble-black-tone, #mansaku-slider-bubble-color-tone"
+          "#mansaku-slider-bubble-background-tone"
         );
 
         const sliderInputWidth = toneSlider?.getBoundingClientRect().width;
@@ -6252,34 +6276,38 @@ export default function App() {
 
   useEffect(() => {
     const handleFocusedSliderWheel = (e: WheelEvent) => {
-      const activeElement = document.activeElement;
+      const sliderElement = e.target;
 
-      if (!(activeElement instanceof HTMLInputElement)) return;
-      if (activeElement.type !== "range") return;
-      if (!activeElement.classList.contains("mansaku-range-slider")) return;
+      if (!(sliderElement instanceof HTMLInputElement)) return;
+      if (sliderElement.type !== "range") return;
+      if (!sliderElement.classList.contains("mansaku-range-slider")) return;
 
       e.preventDefault();
       e.stopPropagation();
+      sliderElement.focus({ preventScroll: true });
 
       const direction = e.deltaY < 0 ? 1 : -1;
 
-      switch (activeElement.id) {
+      switch (sliderElement.id) {
         case "mansaku-slider-preview-scale": {
           setPreviewScale((prev) => clamp(prev + direction * 5, 25, 200));
           return;
         }
 
-        case "mansaku-slider-bubble-white-tone": {
+        case "mansaku-slider-bubble-background-tone": {
           if (!selectedBubble) return;
 
-          const step = e.shiftKey ? 1 : 5;
-          const currentValue = selectedBubble.whiteTone ?? 100;
+          const step = e.shiftKey ? 5 : 1;
+          const toneMode = getBubbleBackgroundToneMode(selectedBubble);
+          const currentValue =
+            toneMode === "white"
+              ? selectedBubble.whiteTone ?? 100
+              : toneMode === "black"
+                ? selectedBubble.blackTone ?? 100
+                : getFreeBubbleTone(selectedBubble);
           const nextValue = clamp(currentValue + direction * step, 0, 100);
 
-          if (
-            nextValue === currentValue &&
-            getBubbleBackgroundToneMode(selectedBubble) === "white"
-          ) {
+          if (nextValue === currentValue) {
             return;
           }
 
@@ -6287,66 +6315,16 @@ export default function App() {
 
           updateBubble(
             selectedBubble.id,
-            (b) => withWhiteBubbleTone(b, nextValue),
-            { recordHistory: false }
-          );
+            (b) => {
+              if (toneMode === "white") return withWhiteBubbleTone(b, nextValue);
+              if (toneMode === "black") return withBlackBubbleTone(b, nextValue);
 
-          markSliderWheelHistoryChanged();
-
-          return;
-        }
-
-        case "mansaku-slider-bubble-black-tone": {
-          if (!selectedBubble) return;
-
-          const step = e.shiftKey ? 1 : 5;
-          const currentValue = selectedBubble.blackTone ?? 0;
-          const nextValue = clamp(currentValue + direction * step, 0, 100);
-
-          if (
-            nextValue === currentValue &&
-            getBubbleBackgroundToneMode(selectedBubble) === "black"
-          ) {
-            return;
-          }
-
-          prepareSliderWheelHistory("bubbleTone", selectedBubble.id);
-
-          updateBubble(
-            selectedBubble.id,
-            (b) => withBlackBubbleTone(b, nextValue),
-            { recordHistory: false }
-          );
-
-          markSliderWheelHistoryChanged();
-
-          return;
-        }
-
-        case "mansaku-slider-bubble-color-tone": {
-          if (!selectedBubble) return;
-
-          const step = e.shiftKey ? 1 : 5;
-          const currentValue = getFreeBubbleTone(selectedBubble);
-          const nextValue = clamp(currentValue + direction * step, 0, 100);
-
-          if (
-            nextValue === currentValue &&
-            getBubbleBackgroundToneMode(selectedBubble) === "color"
-          ) {
-            return;
-          }
-
-          prepareSliderWheelHistory("bubbleTone", selectedBubble.id);
-
-          updateBubble(
-            selectedBubble.id,
-            (b) =>
-              withFreeBubbleBackgroundColor(
+              return withFreeBubbleBackgroundColor(
                 b,
                 getFreeBubbleBackgroundColor(b),
                 { freeBubbleTone: nextValue }
-              ),
+              );
+            },
             { recordHistory: false }
           );
 
@@ -7030,6 +7008,241 @@ useLayoutEffect(() => {
 
     // 画像カードの onFocus / onClick から呼ばれるため、ここではメインへフォーカスを奪い返さない。
     // メインへ戻す必要がある操作は、呼び出し元で明示的に focusCanvasTrap する。
+  };
+
+  const activateFrameEffectLineFromEditor = (frameId: number) => {
+    if (frameId === INNER_LOCKED_FRAME_ID) return;
+
+    closeContextMenu();
+    closePageMenu();
+    closePageInsertMenu();
+    closeTopToolbarMenus();
+    clearRubySelection();
+
+    setActiveTargetType("canvas");
+    setSelectedPageIds([]);
+    lastSelectedPageIdRef.current = null;
+    setSelectedItems([{ kind: "frame", id: frameId }]);
+    setSelectedFrameImageCardId(null);
+    setTrimmingFrameId(null);
+    setHoverFrameGuideId(frameId);
+    setOpenEditorSectionKey("frame-effect-line");
+  };
+
+  const updateFrameEffectLineDirect = (
+    frameId: number,
+    patch:
+      | Partial<ReturnType<typeof getFrameEffectLineFields>>
+      | ((current: ReturnType<typeof getFrameEffectLineFields>) => Partial<ReturnType<typeof getFrameEffectLineFields>>),
+    options?: { recordHistory?: boolean }
+  ) => {
+    updateCurrentPage(
+      (page) => ({
+        ...page,
+        frames: page.frames.map((frame) => {
+          if (frame.id !== frameId) return frame;
+          if (isProtectedCoverBaseFrame(page, frame)) return frame;
+
+          const current = getFrameEffectLineFields(frame);
+          const nextPatch =
+            typeof patch === "function" ? patch(current) : patch;
+
+          return {
+            ...frame,
+            effectLineEnabled: nextPatch.enabled ?? current.enabled,
+            effectLineKind: nextPatch.kind ?? current.kind,
+            effectLineColorMode: nextPatch.colorMode ?? current.colorMode,
+            effectLineCustomColor: nextPatch.customColor ?? current.customColor,
+            effectLineStrokeWidth: nextPatch.strokeWidth ?? current.strokeWidth,
+            effectLineDensity: nextPatch.density ?? current.density,
+            effectLineInnerBlank: nextPatch.innerBlank ?? current.innerBlank,
+            effectLineCenterX: nextPatch.centerX ?? current.centerX,
+            effectLineCenterY: nextPatch.centerY ?? current.centerY,
+            effectLineAngle: nextPatch.angle ?? current.angle,
+          } as Frame;
+        }),
+      }),
+      { recordHistory: options?.recordHistory ?? true }
+    );
+  };
+
+  const changeFrameEffectLineInnerBlankByWheel = (
+    frameId: number,
+    deltaY: number,
+    largeStep = true
+  ) => {
+    const direction = deltaY < 0 ? 1 : -1;
+    const step = largeStep ? 4 : 1;
+
+    updateFrameEffectLineDirect(
+      frameId,
+      (current) => ({
+        enabled: true,
+        innerBlank: clamp(current.innerBlank + direction * step, 0, 100),
+      }),
+      { recordHistory: true }
+    );
+  };
+
+  const changeFrameEffectLineDensityByWheel = (
+    frameId: number,
+    deltaY: number,
+    largeStep = true
+  ) => {
+    const direction = deltaY < 0 ? 1 : -1;
+    const step = largeStep ? 4 : 1;
+
+    updateFrameEffectLineDirect(
+      frameId,
+      (current) => ({
+        enabled: true,
+        density: clamp(current.density + (direction * step) / 100, 0, 1),
+      }),
+      { recordHistory: true }
+    );
+  };
+
+  useEffect(() => {
+    if (
+      focusedWheelSliderId !== "mansaku-slider-frame-effect-line-density" &&
+      focusedWheelSliderId !== "mansaku-slider-frame-effect-line-blank"
+    ) {
+      return;
+    }
+
+    const handleFocusedEffectLineSliderWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) return;
+      if (openEditorSectionKey !== "frame-effect-line") return;
+      if (selectedFrameIds.length !== 1) return;
+
+      const activeElement = document.activeElement as HTMLElement | null;
+      if (activeElement?.id !== focusedWheelSliderId) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const frameId = selectedFrameIds[0];
+
+      if (focusedWheelSliderId === "mansaku-slider-frame-effect-line-density") {
+        changeFrameEffectLineDensityByWheel(frameId, e.deltaY, !e.shiftKey);
+        return;
+      }
+
+      changeFrameEffectLineInnerBlankByWheel(frameId, e.deltaY, !e.shiftKey);
+    };
+
+    window.addEventListener("wheel", handleFocusedEffectLineSliderWheel, {
+      passive: false,
+      capture: true,
+    });
+
+    return () => {
+      window.removeEventListener("wheel", handleFocusedEffectLineSliderWheel, {
+        capture: true,
+      } as AddEventListenerOptions);
+    };
+  }, [focusedWheelSliderId, openEditorSectionKey, selectedFrameIds]);
+
+  const getFrameEffectLineLocalPointFromMouse = (
+    e: MouseEvent | React.MouseEvent,
+    frame: Frame
+  ) => {
+    const pagePoint = getPagePercentPointFromMouse(e);
+    if (!pagePoint) return null;
+
+    return {
+      x: clamp(((pagePoint.xPercent - frame.x) / Math.max(frame.w, 0.000001)) * 100, 0, 100),
+      y: clamp(((pagePoint.yPercent - frame.y) / Math.max(frame.h, 0.000001)) * 100, 0, 100),
+    };
+  };
+
+  const startFrameEffectLineHandleDrag = (
+    e: React.MouseEvent,
+    frame: Frame,
+    handle: "center" | "blank" | "angle"
+  ) => {
+    if (e.button !== 0) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    activateFrameEffectLineFromEditor(frame.id);
+
+    const startPages = clonePages(pagesRef.current);
+
+    const applyFromMouse = (event: MouseEvent | React.MouseEvent) => {
+      const local = getFrameEffectLineLocalPointFromMouse(event, frame);
+      if (!local) return;
+
+      const current = getFrameEffectLineFields(
+        pagesRef.current
+          .find((page) => page.id === currentPageId)
+          ?.frames.find((item) => item.id === frame.id) ?? frame
+      );
+
+      if (handle === "center") {
+        const nextCenterX = event.shiftKey
+          ? Math.round(local.x / 2.5) * 2.5
+          : local.x;
+
+        const nextCenterY = event.shiftKey
+          ? Math.round(local.y / 2.5) * 2.5
+          : local.y;
+
+        updateFrameEffectLineDirect(
+          frame.id,
+          {
+            enabled: true,
+            centerX: clamp(nextCenterX, 0, 100),
+            centerY: clamp(nextCenterY, 0, 100),
+          },
+          { recordHistory: false }
+        );
+        return;
+      }
+
+      if (handle === "blank") {
+        const dx = local.x - current.centerX;
+        const dy = local.y - current.centerY;
+        const distance = Math.hypot(dx, dy);
+
+        updateFrameEffectLineDirect(
+          frame.id,
+          { enabled: true, innerBlank: clamp(distance, 0, 100) },
+          { recordHistory: false }
+        );
+        return;
+      }
+
+      const dx = local.x - current.centerX;
+      const dy = local.y - current.centerY;
+      const rawAngle = (Math.atan2(dy, dx) * 180) / Math.PI;
+      const snappedAngle = event.shiftKey ? Math.round(rawAngle / 15) * 15 : rawAngle;
+      const angle = clamp(snappedAngle, -90, 90);
+
+      updateFrameEffectLineDirect(
+        frame.id,
+        { enabled: true, angle },
+        { recordHistory: false }
+      );
+    };
+
+    applyFromMouse(e);
+
+    const handleMouseMove = (event: MouseEvent) => {
+      event.preventDefault();
+      applyFromMouse(event);
+    };
+
+    const handleMouseUp = () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      setUndoStack((stack) => pushUndoHistory(stack, createHistorySnapshot(startPages)));
+      setRedoStack([]);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
   };
   const moveSelectedItemToEnd = (
     items: SelectedItem[],
@@ -18447,10 +18660,20 @@ const handleResetBubbleStyle = (bubbleId: number) => {
       page.frames.some((frame) => frame.id === selectedFrameImageCardId && hasFrameImage(frame))
         ? selectedFrameImageCardId
         : null;
-    const imagePositionDimTargetFrame =
-      imagePositionDimTargetFrameId == null
+    const effectLineDimTargetFrameId =
+      !exportMode &&
+      draggingFrameImage == null &&
+      openEditorSectionKey === "frame-effect-line" &&
+      selectedFrameIds.length === 1 &&
+      page.frames.some((frame) => frame.id === selectedFrameIds[0])
+        ? selectedFrameIds[0]
+        : null;
+    const editorDimTargetFrameId =
+      imagePositionDimTargetFrameId ?? effectLineDimTargetFrameId;
+    const editorDimTargetFrame =
+      editorDimTargetFrameId == null
         ? null
-        : page.frames.find((frame) => frame.id === imagePositionDimTargetFrameId) ?? null;
+        : page.frames.find((frame) => frame.id === editorDimTargetFrameId) ?? null;
     const getFrameImagePositionDimPointString = (frame: Frame) => {
       const pointString = frame.borderEnabled
         ? getFrameInnerPolygonPointString(frame)
@@ -18471,15 +18694,20 @@ const handleResetBubbleStyle = (bubbleId: number) => {
         .join(" ");
     };
 
-    const imagePositionDimTargetPointString = imagePositionDimTargetFrame
-      ? getFrameImagePositionDimPointString(imagePositionDimTargetFrame)
+    const imagePositionDimTargetPointString = editorDimTargetFrame
+      ? getFrameImagePositionDimPointString(editorDimTargetFrame)
       : null;
+
+    const FRAME_EDITOR_FRONT_Z_INDEX = 30000;
 
     const getFrameDisplayZIndex = (frame: Frame) => {
       if (isProtectedCoverBaseFrame(page, frame)) return 0;
 
-      if (imagePositionDimTargetFrameId === frame.id) {
-        return editableFrameLayerIds.length + 2;
+      if (
+        imagePositionDimTargetFrameId === frame.id ||
+        effectLineDimTargetFrameId === frame.id
+      ) {
+        return FRAME_EDITOR_FRONT_Z_INDEX;
       }
 
       if (isMultiFrameSelection && activeSelectedFrameId === frame.id) {
@@ -18596,6 +18824,8 @@ const handleResetBubbleStyle = (bubbleId: number) => {
               />
             )}
           </div>
+
+          <FrameEffectLineLayer frame={frame} />
 
           {isFrameImageDragOverTarget && (
             <div
@@ -19302,6 +19532,20 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                   }
                 }
 
+                if (
+                  frame &&
+                  openEditorSectionKey === "frame-effect-line" &&
+                  selectedFrameIds.length === 1 &&
+                  selectedFrameIds[0] === frame.id
+                ) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  closeContextMenu();
+                  activateFrameEffectLineFromEditor(frame.id);
+                  window.setTimeout(() => setOpenEditorSectionKey("frame-effect-line"), 0);
+                  return;
+                }
+
                 if (frame) {
                   startFrameMove(e, frame);
                   return;
@@ -19462,8 +19706,25 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                 exportMode
                   ? undefined
                   : (e) => {
-                      if (trimmingFrameId !== frame.id || !frameImageSrc) return;
                       if (e.ctrlKey || e.metaKey) return;
+
+                      if (
+                        openEditorSectionKey === "frame-effect-line" &&
+                        selectedFrameIds.length === 1 &&
+                        selectedFrameIds[0] === frame.id &&
+                        getFrameEffectLineFields(frame).enabled
+                      ) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        changeFrameEffectLineInnerBlankByWheel(
+                          frame.id,
+                          e.deltaY,
+                          !e.shiftKey
+                        );
+                        return;
+                      }
+
+                      if (trimmingFrameId !== frame.id || !frameImageSrc) return;
 
                       e.preventDefault();
                       e.stopPropagation();
@@ -19531,7 +19792,71 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                     }}
                   />
                 )}
+
+                <FrameEffectLineLayer frame={frame} />
               </div>
+
+              {!exportMode &&
+                isFrameSelected &&
+                selectedFrameIds.length === 1 &&
+                openEditorSectionKey === "frame-effect-line" &&
+                getFrameEffectLineFields(frame).enabled && (() => {
+                  const effectLine = getFrameEffectLineFields(frame);
+                  const centerHandle = (
+                    <div
+                      key="effect-line-center"
+                      data-effect-line-handle="true"
+                      title="効果線の中心"
+                      onMouseDown={(e) => startFrameEffectLineHandleDrag(e, frame, "center")}
+                      style={{
+                        position: "absolute",
+                        left: `${effectLine.centerX}%`,
+                        top: `${effectLine.centerY}%`,
+                        width: 18,
+                        height: 18,
+                        transform: "translate(-50%, -50%)",
+                        borderRadius: "50%",
+                        background: "#ffffff",
+                        border: "3px solid #2563eb",
+                        boxShadow: "0 0 0 3px rgba(37,99,235,0.22)",
+                        cursor: "move",
+                        pointerEvents: "auto",
+                        zIndex: 10000,
+                      }}
+                    />
+                  );
+
+                  const rad = (effectLine.angle * Math.PI) / 180;
+                  const angleX = clamp(effectLine.centerX + Math.cos(rad) * 34, 0, 100);
+                  const angleY = clamp(effectLine.centerY + Math.sin(rad) * 34, 0, 100);
+
+                  return (
+                    <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 10000 }}>
+                      {centerHandle}
+                      {effectLine.kind === "speed" && (
+                        <div
+                          data-effect-line-handle="true"
+                          title="スピード線の角度"
+                          onMouseDown={(e) => startFrameEffectLineHandleDrag(e, frame, "angle")}
+                          style={{
+                            position: "absolute",
+                            left: `${angleX}%`,
+                            top: `${angleY}%`,
+                            width: 20,
+                            height: 20,
+                            transform: "translate(-50%, -50%)",
+                            borderRadius: "50%",
+                            background: "#f97316",
+                            border: "3px solid #ffffff",
+                            boxShadow: "0 0 0 2px #f97316, 0 8px 18px rgba(0,0,0,0.28)",
+                            cursor: "grab",
+                            pointerEvents: "auto",
+                          }}
+                        />
+                      )}
+                    </div>
+                  );
+                })()}
 
               <div
                 style={{
@@ -20581,9 +20906,14 @@ const handleResetBubbleStyle = (bubbleId: number) => {
               const isProtectedCoverBase = isProtectedCoverBaseFrame(page, frame);
               const isActiveSelectedFrame =
                 !isMultiFrameSelection || activeSelectedFrameId === frame.id;
+              const isFrameEffectLineEditing =
+                openEditorSectionKey === "frame-effect-line" &&
+                selectedFrameIds.length === 1 &&
+                selectedFrameIds[0] === frame.id;
               const showFrameHandles =
                 !isProtectedCoverBase &&
-                isActiveSelectedFrame;
+                isActiveSelectedFrame &&
+                !isFrameEffectLineEditing;
               const frameHandleColor = "#2563eb";
               const frameHandleBackground = "#ffffff";
 
@@ -20645,7 +20975,11 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                     height: `${frame.h}%`,
                     overflow: "visible",
                     pointerEvents: "none",
-                    zIndex: isFrameHandleActive ? 7000 : 6000,
+                    zIndex: isFrameImagePositionEditing
+                      ? FRAME_EDITOR_FRONT_Z_INDEX + 1000
+                      : isFrameHandleActive
+                        ? 7000
+                        : 6000,
                   }}
                 >
                   <svg
@@ -23306,416 +23640,252 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                         <div>
                           <CollapsibleEditorSection sectionKey="bubble-tone" title={t("backgroundColor")} openSectionKey={openEditorSectionKey} setOpenSectionKey={setOpenEditorSectionKey}>
 
-                          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                            <div style={sliderRowStyle}>
-                              <ToolbarIconButton
-                                title={t("toggleWhiteTone")}
-                                onClick={() => {
-                                  updateBubble(selectedBubble.id, (b) => {
-                                    const current = b.whiteTone ?? 100;
-                                    const next = current >= 100 ? 0 : 100;
+                          {(() => {
+                            const toneMode = getBubbleBackgroundToneMode(selectedBubble);
+                            const toneValue =
+                              toneMode === "white"
+                                ? selectedBubble.whiteTone ?? 100
+                                : toneMode === "black"
+                                  ? selectedBubble.blackTone ?? 100
+                                  : getFreeBubbleTone(selectedBubble);
 
-                                    return withWhiteBubbleTone(b, next);
-                                  });
-                                }}
-                                style={{
-                                  background:
-                                    getBubbleBackgroundToneMode(selectedBubble) === "white"
-                                      ? "#e5e7eb"
-                                      : undefined,
-                                }}
-                              >
-                                <TextBackgroundSvgIcon type="white" />
-                              </ToolbarIconButton>
+                            const applyToneValue = (
+                              bubble: Bubble,
+                              value: number
+                            ) => {
+                              if (toneMode === "white") return withWhiteBubbleTone(bubble, value);
+                              if (toneMode === "black") return withBlackBubbleTone(bubble, value);
 
-                              <input
-                                id="mansaku-slider-bubble-white-tone"
-                                className="mansaku-range-slider"
-                                type="range"
-                                title={t("tone")}
-                                aria-label={t("tone")}
-                                min={0}
-                                max={100}
-                                step={1}
-                                value={selectedBubble.whiteTone ?? 100}
-                                onChange={(e) => {
-                                  const rawValue = Number(e.target.value);
-                                  const value =
-                                    e.currentTarget.dataset.shiftDown === "true"
-                                      ? clamp(Math.round(rawValue / 25) * 25, 0, 100)
-                                      : clamp(rawValue, 0, 100);
+                              return withFreeBubbleBackgroundColor(
+                                bubble,
+                                getFreeBubbleBackgroundColor(bubble),
+                                { freeBubbleTone: value }
+                              );
+                            };
 
-                                    updateBubble(
-                                      selectedBubble.id,
-                                      (b) => withWhiteBubbleTone(b, value),
-                                      { recordHistory: false }
-                                    );
-                                }}
-                                onPointerDown={(e) => {
-                                  e.currentTarget.dataset.shiftDown = e.shiftKey ? "true" : "false";
-                                  setActiveTargetType("canvas");
-                                  setSelectedItems([{ kind: "bubble", id: selectedBubble.id }]);
+                            const beginBubbleToneHistory = () => {
+                              setActiveTargetType("canvas");
+                              setSelectedItems([{ kind: "bubble", id: selectedBubble.id }]);
 
-                                  bubbleToneHistoryRef.current = {
-                                    pages: clonePages(pagesRef.current),
-                                    bubbleId: selectedBubble.id,
-                                    startWhiteTone: selectedBubble.whiteTone ?? 100,
-                                    startBlackTone: selectedBubble.blackTone ?? 0,
-                                    startToneMode: getBubbleBackgroundToneMode(selectedBubble),
-                                  };
+                              bubbleToneHistoryRef.current = {
+                                pages: clonePages(pagesRef.current),
+                                bubbleId: selectedBubble.id,
+                                startWhiteTone: selectedBubble.whiteTone ?? 100,
+                                startBlackTone: selectedBubble.blackTone ?? 100,
+                                startFreeBubbleTone: getFreeBubbleTone(selectedBubble),
+                                startToneMode: getBubbleBackgroundToneMode(selectedBubble),
+                              };
+                            };
 
-                                  updateBubble(
-                                    selectedBubble.id,
-                                    (b) => withWhiteBubbleTone(b, b.whiteTone ?? 100),
-                                    { recordHistory: false }
-                                  );
-                                }}
-                                onPointerMove={(e) => {
-                                  e.currentTarget.dataset.shiftDown = e.shiftKey ? "true" : "false";
-                                }}
-                                onPointerUp={(e) => {
-                                  e.currentTarget.dataset.shiftDown = "false";
+                            const commitBubbleToneHistory = () => {
+                              const snapshot = bubbleToneHistoryRef.current;
+                              bubbleToneHistoryRef.current = null;
 
-                                  const snapshot = bubbleToneHistoryRef.current;
-                                  bubbleToneHistoryRef.current = null;
+                              if (!snapshot) return;
+                              if (snapshot.bubbleId !== selectedBubble.id) return;
 
-                                  if (!snapshot) return;
-                                  if (snapshot.bubbleId !== selectedBubble.id) return;
+                              const currentBubble =
+                                pagesRef.current
+                                  .find((page) => page.id === currentPageId)
+                                  ?.bubbles.find((bubble) => bubble.id === selectedBubble.id) ??
+                                selectedBubble;
 
-                                  const currentWhiteTone = selectedBubble.whiteTone ?? 100;
-                                  const currentBlackTone = selectedBubble.blackTone ?? 0;
-                                  const currentToneMode =
-                                    getCurrentBubbleBackgroundToneModeFromPages(
-                                      pagesRef.current,
-                                      selectedBubble.id
-                                    ) ?? getBubbleBackgroundToneMode(selectedBubble);
+                              const currentWhiteTone = currentBubble.whiteTone ?? 100;
+                              const currentBlackTone = currentBubble.blackTone ?? 0;
+                              const currentFreeBubbleTone = getFreeBubbleTone(currentBubble);
+                              const currentToneMode = getBubbleBackgroundToneMode(currentBubble);
 
-                                  if (
-                                    snapshot.startWhiteTone === currentWhiteTone &&
-                                    snapshot.startBlackTone === currentBlackTone &&
-                                    snapshot.startToneMode === currentToneMode
-                                  ) {
-                                    return;
-                                  }
+                              if (
+                                snapshot.startWhiteTone === currentWhiteTone &&
+                                snapshot.startBlackTone === currentBlackTone &&
+                                snapshot.startFreeBubbleTone === currentFreeBubbleTone &&
+                                snapshot.startToneMode === currentToneMode
+                              ) {
+                                return;
+                              }
 
-                                  setUndoStack((stack) => pushUndoHistory(stack, createHistorySnapshot(snapshot.pages)));
-                                  setRedoStack([]);
-                                }}
-                                onPointerCancel={(e) => {
-                                  e.currentTarget.dataset.shiftDown = "false";
-                                  bubbleToneHistoryRef.current = null;
-                                }}
-                                onFocus={() => setFocusedWheelSliderId("mansaku-slider-bubble-white-tone")}
-                  onBlur={() => setFocusedWheelSliderId((current) => current === "mansaku-slider-bubble-white-tone" ? null : current)}
-                  style={sliderInputStyle}
-                              />
+                              setUndoStack((stack) => pushUndoHistory(stack, createHistorySnapshot(snapshot.pages)));
+                              setRedoStack([]);
+                            };
 
-                              <span style={sliderValueLabelStyle}>
-                                {selectedBubble.whiteTone ?? 100}%
-                              </span>
-                            </div>
+                            const selectToneMode = (mode: BubbleBackgroundToneMode) => {
+                              updateBubble(selectedBubble.id, (b) => {
+                                const currentMode = getBubbleBackgroundToneMode(b);
+                                const currentTone =
+                                  currentMode === "white"
+                                    ? b.whiteTone ?? 100
+                                    : currentMode === "black"
+                                      ? b.blackTone ?? 100
+                                      : getFreeBubbleTone(b);
 
-                            <div style={sliderRowStyle}>
-                              <ToolbarIconButton
-                                title={t("toggleBlackTone")}
-                                onClick={() => {
-                                  updateBubble(selectedBubble.id, (b) => {
-                                    const current = b.blackTone ?? 0;
-                                    const next = current >= 100 ? 0 : 100;
+                                if (mode === "white") {
+                                  return withWhiteBubbleTone(b, currentTone);
+                                }
 
-                                    return withBlackBubbleTone(b, next);
-                                  });
-                                }}
-                                style={{
-                                  background:
-                                    getBubbleBackgroundToneMode(selectedBubble) === "black"
-                                      ? "#e5e7eb"
-                                      : undefined,
-                                }}
-                              >
-                                <TextBackgroundSvgIcon type="black" />
-                              </ToolbarIconButton>
+                                if (mode === "black") {
+                                  return withBlackBubbleTone(b, currentTone);
+                                }
 
-                              <input
-                                id="mansaku-slider-bubble-black-tone"
-                                className="mansaku-range-slider"
-                                type="range"
-                                title={t("tone")}
-                                aria-label={t("tone")}
-                                min={0}
-                                max={100}
-                                step={1}
-                                value={selectedBubble.blackTone ?? 0}
-                                onChange={(e) => {
-                                  const rawValue = Number(e.target.value);
-                                  const value =
-                                    e.currentTarget.dataset.shiftDown === "true"
-                                      ? clamp(Math.round(rawValue / 25) * 25, 0, 100)
-                                      : clamp(rawValue, 0, 100);
+                                return withFreeBubbleBackgroundColor(
+                                  b,
+                                  getFreeBubbleBackgroundColor(b),
+                                  { freeBubbleTone: currentTone }
+                                );
+                              });
+                            };
 
-                                    updateBubble(
-                                      selectedBubble.id,
-                                      (b) => withBlackBubbleTone(b, value),
-                                      { recordHistory: false }
-                                    );
-                                }}
-                                onPointerDown={(e) => {
-                                  e.currentTarget.dataset.shiftDown = e.shiftKey ? "true" : "false";
-                                  setActiveTargetType("canvas");
-                                  setSelectedItems([{ kind: "bubble", id: selectedBubble.id }]);
+                            return (
+                              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                  <span style={{ fontSize: 12, fontWeight: 700 }}>
+                                    {t("tone")}
+                                  </span>
 
-                                  bubbleToneHistoryRef.current = {
-                                    pages: clonePages(pagesRef.current),
-                                    bubbleId: selectedBubble.id,
-                                    startWhiteTone: selectedBubble.whiteTone ?? 100,
-                                    startBlackTone: selectedBubble.blackTone ?? 0,
-                                    startToneMode: getBubbleBackgroundToneMode(selectedBubble),
-                                  };
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
+                                    <input
+                                      id="mansaku-slider-bubble-background-tone"
+                                      className="mansaku-range-slider"
+                                      type="range"
+                                      title={t("tone")}
+                                      aria-label={t("tone")}
+                                      min={0}
+                                      max={100}
+                                      step={1}
+                                      value={toneValue}
+                                      onChange={(e) => {
+                                        const rawValue = Number(e.target.value);
+                                        const value =
+                                          e.currentTarget.dataset.shiftDown === "true"
+                                            ? clamp(Math.round(rawValue / 25) * 25, 0, 100)
+                                            : clamp(rawValue, 0, 100);
 
-                                  updateBubble(
-                                    selectedBubble.id,
-                                    (b) => withBlackBubbleTone(b, b.blackTone ?? 0),
-                                    { recordHistory: false }
-                                  );
-                                }}
-                                onPointerMove={(e) => {
-                                  e.currentTarget.dataset.shiftDown = e.shiftKey ? "true" : "false";
-                                }}
-                                onPointerUp={(e) => {
-                                  e.currentTarget.dataset.shiftDown = "false";
-
-                                  const snapshot = bubbleToneHistoryRef.current;
-                                  bubbleToneHistoryRef.current = null;
-
-                                  if (!snapshot) return;
-                                  if (snapshot.bubbleId !== selectedBubble.id) return;
-
-                                  const currentWhiteTone = selectedBubble.whiteTone ?? 100;
-                                  const currentBlackTone = selectedBubble.blackTone ?? 0;
-                                  const currentToneMode =
-                                    getCurrentBubbleBackgroundToneModeFromPages(
-                                      pagesRef.current,
-                                      selectedBubble.id
-                                    ) ?? getBubbleBackgroundToneMode(selectedBubble);
-
-                                  if (
-                                    snapshot.startWhiteTone === currentWhiteTone &&
-                                    snapshot.startBlackTone === currentBlackTone &&
-                                    snapshot.startToneMode === currentToneMode
-                                  ) {
-                                    return;
-                                  }
-
-                                  setUndoStack((stack) => pushUndoHistory(stack, createHistorySnapshot(snapshot.pages)));
-                                  setRedoStack([]);
-                                }}
-                                onPointerCancel={(e) => {
-                                  e.currentTarget.dataset.shiftDown = "false";
-                                  bubbleToneHistoryRef.current = null;
-                                }}
-                                onFocus={() => setFocusedWheelSliderId("mansaku-slider-bubble-black-tone")}
-                  onBlur={() => setFocusedWheelSliderId((current) => current === "mansaku-slider-bubble-black-tone" ? null : current)}
-                  style={sliderInputStyle}
-                              />
-
-                              <span style={sliderValueLabelStyle}>
-                                {selectedBubble.blackTone ?? 0}%
-                              </span>
-                            </div>
-
-                            <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                              <div style={sliderRowStyle}>
-                                <ToolbarIconButton
-                                  title={t("colorText")}
-                                  onClick={() =>
-                                    updateBubble(selectedBubble.id, (b) => {
-                                      const enabled = isFreeBubbleBackgroundColorMode(b);
-
-                                      if (enabled) {
-                                        const current = getFreeBubbleTone(b);
-                                        const next = current >= 100 ? 0 : 100;
-
-                                        return withFreeBubbleBackgroundColor(
-                                          b,
-                                          getFreeBubbleBackgroundColor(b),
-                                          { freeBubbleTone: next }
+                                        updateBubble(
+                                          selectedBubble.id,
+                                          (b) => applyToneValue(b, value),
+                                          { recordHistory: false }
                                         );
-                                      }
-
-                                      return withFreeBubbleBackgroundColor(
-                                        b,
-                                        getFreeBubbleBackgroundColor(b),
-                                        { freeBubbleTone: 100 }
-                                      );
-                                    })
-                                  }
-                                  style={{
-                                    background:
-                                      getBubbleBackgroundToneMode(selectedBubble) === "color"
-                                        ? "#e5e7eb"
-                                        : undefined,
-                                  }}
-                                >
-                                  <TextBackgroundSvgIcon type="color" />
-                                </ToolbarIconButton>
-
-                                <input
-                                  id="mansaku-slider-bubble-color-tone"
-                                  className="mansaku-range-slider"
-                                  type="range"
-                                  title={t("tone")}
-                                  aria-label={t("tone")}
-                                  min={0}
-                                  max={100}
-                                  step={1}
-                                  value={getFreeBubbleTone(selectedBubble)}
-                                  onChange={(e) => {
-                                    const rawValue = Number(e.target.value);
-                                    const value =
-                                      e.currentTarget.dataset.shiftDown === "true"
-                                        ? clamp(Math.round(rawValue / 25) * 25, 0, 100)
-                                        : clamp(rawValue, 0, 100);
-
-                                    const currentValue = getFreeBubbleTone(selectedBubble);
-
-                                    if (
-                                      value === currentValue &&
-                                      !isFreeBubbleBackgroundColorMode(selectedBubble)
-                                    ) {
-                                      return;
-                                    }
-
-                                    updateBubble(
-                                      selectedBubble.id,
-                                      (b) =>
-                                        withFreeBubbleBackgroundColor(
-                                          b,
-                                          getFreeBubbleBackgroundColor(b),
-                                          { freeBubbleTone: value }
-                                        ),
-                                      { recordHistory: false }
-                                    );
-                                  }}
-                                  onPointerDown={(e) => {
-                                    e.currentTarget.dataset.shiftDown = e.shiftKey ? "true" : "false";
-                                    setActiveTargetType("canvas");
-                                    setSelectedItems([{ kind: "bubble", id: selectedBubble.id }]);
-
-                                    bubbleToneHistoryRef.current = {
-                                      pages: clonePages(pagesRef.current),
-                                      bubbleId: selectedBubble.id,
-                                      startWhiteTone: selectedBubble.whiteTone ?? 100,
-                                      startBlackTone: selectedBubble.blackTone ?? 0,
-                                      startFreeBubbleTone: getFreeBubbleTone(selectedBubble),
-                                      startToneMode: getBubbleBackgroundToneMode(selectedBubble),
-                                    };
-
-                                    updateBubble(
-                                      selectedBubble.id,
-                                      (b) =>
-                                        withFreeBubbleBackgroundColor(
-                                          b,
-                                          getFreeBubbleBackgroundColor(b),
-                                          { freeBubbleTone: getFreeBubbleTone(b) }
-                                        ),
-                                      { recordHistory: false }
-                                    );
-                                  }}
-                                  onPointerMove={(e) => {
-                                    e.currentTarget.dataset.shiftDown = e.shiftKey ? "true" : "false";
-                                  }}
-                                  onPointerUp={(e) => {
-                                    e.currentTarget.dataset.shiftDown = "false";
-
-                                    const snapshot = bubbleToneHistoryRef.current;
-                                    bubbleToneHistoryRef.current = null;
-
-                                    if (!snapshot) return;
-                                    if (snapshot.bubbleId !== selectedBubble.id) return;
-
-                                    const currentWhiteTone = selectedBubble.whiteTone ?? 100;
-                                    const currentBlackTone = selectedBubble.blackTone ?? 0;
-                                    const currentFreeBubbleTone = getFreeBubbleTone(selectedBubble);
-                                    const currentToneMode =
-                                      getCurrentBubbleBackgroundToneModeFromPages(
-                                        pagesRef.current,
-                                        selectedBubble.id
-                                      ) ?? getBubbleBackgroundToneMode(selectedBubble);
-
-                                    if (
-                                      snapshot.startWhiteTone === currentWhiteTone &&
-                                      snapshot.startBlackTone === currentBlackTone &&
-                                      snapshot.startFreeBubbleTone === currentFreeBubbleTone &&
-                                      snapshot.startToneMode === currentToneMode
-                                    ) {
-                                      return;
-                                    }
-
-                                    setUndoStack((stack) => pushUndoHistory(stack, createHistorySnapshot(snapshot.pages)));
-                                    setRedoStack([]);
-                                  }}
-                                  onPointerCancel={(e) => {
-                                    e.currentTarget.dataset.shiftDown = "false";
-                                    bubbleToneHistoryRef.current = null;
-                                  }}
-                                  onFocus={() => setFocusedWheelSliderId("mansaku-slider-bubble-color-tone")}
-                                  onBlur={() => setFocusedWheelSliderId((current) => current === "mansaku-slider-bubble-color-tone" ? null : current)}
-                                  style={sliderInputStyle}
-                                />
-
-                                <span style={sliderValueLabelStyle}>
-                                  {getFreeBubbleTone(selectedBubble)}%
-                                </span>
-                              </div>
-
-                              {isFreeBubbleBackgroundColorMode(selectedBubble) && (
-                                <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", paddingTop: 8 }}>
-                                  <ColorPaletteField
-                                    label={t("backgroundColor")}
-                                    value={getFreeBubbleBackgroundColor(selectedBubble)}
-                                    onChange={(color) =>
-                                      updateBubble(selectedBubble.id, (b) =>
-                                        withFreeBubbleBackgroundColor(b, color)
-                                      )
-                                    }
-                                  />
-
-                                  <EditorSwitchButton
-                                    label={t("outline")}
-                                    checked={getFreeBubbleBorderEnabled(selectedBubble)}
-                                    onToggle={() =>
-                                      updateBubble(selectedBubble.id, (b) =>
-                                        withFreeBubbleBackgroundColor(
-                                          b,
-                                          getFreeBubbleBackgroundColor(b),
-                                          {
-                                            freeBubbleBorderEnabled: !getFreeBubbleBorderEnabled(b),
-                                          }
-                                        )
-                                      )
-                                    }
-                                  />
-
-                                  {getFreeBubbleBorderEnabled(selectedBubble) && (
-                                    <ColorPaletteField
-                                      label={t("outline")}
-                                      value={getFreeBubbleBorderColor(selectedBubble)}
-                                      onChange={(color) =>
-                                        updateBubble(selectedBubble.id, (b) =>
-                                          withFreeBubbleBackgroundColor(
-                                            b,
-                                            getFreeBubbleBackgroundColor(b),
-                                            { freeBubbleBorderColor: color }
-                                          )
-                                        )
-                                      }
+                                      }}
+                                      onPointerDown={(e) => {
+                                        e.currentTarget.dataset.shiftDown = e.shiftKey ? "true" : "false";
+                                        beginBubbleToneHistory();
+                                        updateBubble(
+                                          selectedBubble.id,
+                                          (b) => applyToneValue(b, toneValue),
+                                          { recordHistory: false }
+                                        );
+                                      }}
+                                      onPointerMove={(e) => {
+                                        e.currentTarget.dataset.shiftDown = e.shiftKey ? "true" : "false";
+                                      }}
+                                      onPointerUp={(e) => {
+                                        e.currentTarget.dataset.shiftDown = "false";
+                                        commitBubbleToneHistory();
+                                      }}
+                                      onPointerCancel={(e) => {
+                                        e.currentTarget.dataset.shiftDown = "false";
+                                        bubbleToneHistoryRef.current = null;
+                                      }}
+                                      onFocus={() => setFocusedWheelSliderId("mansaku-slider-bubble-background-tone")}
+                                      onBlur={() => setFocusedWheelSliderId((current) => current === "mansaku-slider-bubble-background-tone" ? null : current)}
+                                      style={sliderInputStyle}
                                     />
+
+                                    <span style={sliderValueLabelStyle}>
+                                      {toneValue}%
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                  <span style={{ fontSize: 12, fontWeight: 700 }}>
+                                    {t("backgroundColor")}
+                                  </span>
+
+                                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                    <ToolbarIconButton
+                                      title={t("toggleWhiteTone")}
+                                      onClick={() => selectToneMode("white")}
+                                      style={{
+                                        background: toneMode === "white" ? "#dbeafe" : undefined,
+                                        outline: toneMode === "white" ? "2px solid #2563eb" : undefined,
+                                      }}
+                                    >
+                                      <TextBackgroundSvgIcon type="white" />
+                                    </ToolbarIconButton>
+
+                                    <ToolbarIconButton
+                                      title={t("toggleBlackTone")}
+                                      onClick={() => selectToneMode("black")}
+                                      style={{
+                                        background: toneMode === "black" ? "#dbeafe" : undefined,
+                                        outline: toneMode === "black" ? "2px solid #2563eb" : undefined,
+                                      }}
+                                    >
+                                      <TextBackgroundSvgIcon type="black" />
+                                    </ToolbarIconButton>
+
+                                    <ToolbarIconButton
+                                      title={t("colorText")}
+                                      onClick={() => selectToneMode("color")}
+                                      style={{
+                                        background: toneMode === "color" ? "#dbeafe" : undefined,
+                                        outline: toneMode === "color" ? "2px solid #2563eb" : undefined,
+                                      }}
+                                    >
+                                      <TextBackgroundSvgIcon type="color" />
+                                    </ToolbarIconButton>
+                                  </div>
+
+                                  {toneMode === "color" && (
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", paddingTop: 8 }}>
+                                      <ColorPaletteField
+                                        label={t("colorText")}
+                                        value={getFreeBubbleBackgroundColor(selectedBubble)}
+                                        onChange={(color) =>
+                                          updateBubble(selectedBubble.id, (b) =>
+                                            withFreeBubbleBackgroundColor(b, color)
+                                          )
+                                        }
+                                      />
+
+                                      <EditorSwitchButton
+                                        label={t("outline")}
+                                        checked={getFreeBubbleBorderEnabled(selectedBubble)}
+                                        onToggle={() =>
+                                          updateBubble(selectedBubble.id, (b) =>
+                                            withFreeBubbleBackgroundColor(
+                                              b,
+                                              getFreeBubbleBackgroundColor(b),
+                                              {
+                                                freeBubbleBorderEnabled: !getFreeBubbleBorderEnabled(b),
+                                              }
+                                            )
+                                          )
+                                        }
+                                      />
+
+                                      {getFreeBubbleBorderEnabled(selectedBubble) && (
+                                        <ColorPaletteField
+                                          label={t("outline")}
+                                          value={getFreeBubbleBorderColor(selectedBubble)}
+                                          onChange={(color) =>
+                                            updateBubble(selectedBubble.id, (b) =>
+                                              withFreeBubbleBackgroundColor(
+                                                b,
+                                                getFreeBubbleBackgroundColor(b),
+                                                { freeBubbleBorderColor: color }
+                                              )
+                                            )
+                                          }
+                                        />
+                                      )}
+                                    </div>
                                   )}
                                 </div>
-                              )}
-                            </div>
-                          </div>
-                        
+                              </div>
+                            );
+                          })()}
+
                           </CollapsibleEditorSection></div>
 
                         <div>
@@ -24384,7 +24554,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                                   background: "#f3f4f6",
                                 }}
                               >
-                                画像なし
+                                {t("noImage")}
                               </div>
                             )}
                           </div>
@@ -24395,18 +24565,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                             data-image-position-keep-frame-id={String(selectedFrame.id)}
                             style={{ marginTop: 10 }}
                           >
-                          <div style={sliderRowStyle}>
-                            <ToolbarIconButton
-                              title={t("setMinimumScale")}
-                              disabled={!selectedFrameHasImage}
-                              onClick={() => {
-                                if (!selectedFrameHasImage) return;
-                                changeFrameImageScaleDirect(selectedFrame.id, 1);
-                              }}
-                            >
-                              <MagnifierSvgIcon />
-                            </ToolbarIconButton>
-
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             <input
                               id="mansaku-slider-frame-image-scale"
                               className="mansaku-range-slider"
@@ -24453,8 +24612,22 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                                 imageScaleHistoryRef.current = null;
                               }}
                               onFocus={() => setFocusedWheelSliderId("mansaku-slider-frame-image-scale")}
-                  onBlur={() => setFocusedWheelSliderId((current) => current === "mansaku-slider-frame-image-scale" ? null : current)}
-                  style={sliderInputStyle}
+                              onBlur={() =>
+                                setFocusedWheelSliderId((current) =>
+                                  current === "mansaku-slider-frame-image-scale" ? null : current
+                                )
+                              }
+                              onWheelCapture={(e) => {
+                                if (!selectedFrameHasImage || e.ctrlKey || e.metaKey) return;
+                                e.preventDefault();
+                                e.stopPropagation();
+                                changeFrameImageScaleByWheel(
+                                  selectedFrame.id,
+                                  e.deltaY,
+                                  !e.shiftKey
+                                );
+                              }}
+                              style={{ ...sliderInputStyle, flex: 1 }}
                             />
 
                             <span
@@ -24470,7 +24643,297 @@ const handleResetBubbleStyle = (bubbleId: number) => {
 
                         </CollapsibleEditorSection>
 
-                        <CollapsibleEditorSection sectionKey="frame-border-visible" title="枠線表示" openSectionKey={openEditorSectionKey} setOpenSectionKey={setOpenEditorSectionKey}>
+                        <CollapsibleEditorSection sectionKey="frame-effect-line" title={t("effectLine")} openSectionKey={openEditorSectionKey} setOpenSectionKey={setOpenEditorSectionKey}>
+                          {(() => {
+                            const effectLine = getFrameEffectLineFields(selectedFrame);
+
+                            const updateSelectedFrameEffectLine = (
+                              patch:
+                                | Partial<ReturnType<typeof getFrameEffectLineFields>>
+                                | ((current: ReturnType<typeof getFrameEffectLineFields>) => Partial<ReturnType<typeof getFrameEffectLineFields>>)
+                            ) => {
+                              const targetFrameIds =
+                                selectedFrameIds.length > 1 ? selectedFrameIds : [selectedFrame.id];
+
+                              updateCurrentPage((page) => ({
+                                ...page,
+                                frames: page.frames.map((frame) => {
+                                  if (!targetFrameIds.includes(frame.id)) return frame;
+                                  if (isProtectedCoverBaseFrame(page, frame)) return frame;
+
+                                  const current = getFrameEffectLineFields(frame);
+                                  const nextPatch =
+                                    typeof patch === "function" ? patch(current) : patch;
+
+                                  return {
+                                    ...frame,
+                                    effectLineEnabled:
+                                      nextPatch.enabled ?? current.enabled,
+                                    effectLineKind:
+                                      nextPatch.kind ?? current.kind,
+                                    effectLineColorMode:
+                                      nextPatch.colorMode ?? current.colorMode,
+                                    effectLineCustomColor:
+                                      nextPatch.customColor ?? current.customColor,
+                                    effectLineStrokeWidth:
+                                      nextPatch.strokeWidth ?? current.strokeWidth,
+                                    effectLineDensity:
+                                      nextPatch.density ?? current.density,
+                                    effectLineInnerBlank:
+                                      nextPatch.innerBlank ?? current.innerBlank,
+                                    effectLineCenterX:
+                                      nextPatch.centerX ?? current.centerX,
+                                    effectLineCenterY:
+                                      nextPatch.centerY ?? current.centerY,
+                                    effectLineAngle:
+                                      nextPatch.angle ?? current.angle,
+                                  } as Frame;
+                                }),
+                              }));
+                            };
+
+                            const selectedFrames =
+                              currentPage?.frames.filter((frame) =>
+                                selectedFrameIds.includes(frame.id)
+                              ) ?? [];
+
+                            const disabled =
+                              selectedFrames.length > 0 &&
+                              selectedFrames.every((frame) =>
+                                currentPage ? isProtectedCoverBaseFrame(currentPage, frame) : false
+                              );
+
+                            const getFrameEffectLineKindIcon = (
+                              kind: "none" | FrameEffectLineKind
+                            ) => {
+                              if (kind === "none") return <NoneSvgIcon />;
+                              if (kind === "focus") return <FocusLineSvgIcon />;
+                              return <SpeedLineSvgIcon />;
+                            };
+
+                            const getFrameEffectLineColorModeIcon = (
+                              mode: FrameEffectLineColorMode
+                            ) => {
+                              if (mode === "white") return <WhiteFillSvgIcon />;
+                              if (mode === "black") return <BlackFillSvgIcon />;
+                              return <RainbowFillSvgIcon />;
+                            };
+
+                            return (
+                              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                                  {(["none", ...FRAME_EFFECT_LINE_KINDS] as const).map((kind) => {
+                                    const active =
+                                      kind === "none"
+                                        ? !effectLine.enabled
+                                        : effectLine.enabled && effectLine.kind === kind;
+
+                                    const title =
+                                      kind === "none"
+                                        ? t("effectLineNone")
+                                        : getFrameEffectLineKindLabel(kind, t);
+
+                                    return (
+                                      <ToolbarIconButton
+                                        key={kind}
+                                        title={title}
+                                        disabled={disabled}
+                                        onClick={() => {
+                                          activateFrameEffectLineFromEditor(selectedFrame.id);
+                                          if (kind === "none") {
+                                            updateSelectedFrameEffectLine({ enabled: false });
+                                            return;
+                                          }
+
+                                          updateSelectedFrameEffectLine({ enabled: true, kind });
+                                        }}
+                                        style={{
+                                          background: active ? "#e5e7eb" : undefined,
+                                        }}
+                                      >
+                                        {getFrameEffectLineKindIcon(kind)}
+                                      </ToolbarIconButton>
+                                    );
+                                  })}
+
+                                  <ToolbarIconButton
+                                    title={t("reset")}
+                                    disabled={disabled}
+                                    onClick={() =>
+                                      updateSelectedFrameEffectLine({
+                                        ...FRAME_EFFECT_LINE_DEFAULTS,
+                                        enabled: false,
+                                      })
+                                    }
+                                  >
+                                    <ResetSvgIcon />
+                                  </ToolbarIconButton>
+                                </div>
+
+                                {effectLine.enabled && (
+                                  <>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                      <span style={{ fontSize: 12, fontWeight: 700 }}>{t("effectLineBlank")}</span>
+
+                                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                        <input
+                                          id="mansaku-slider-frame-effect-line-blank"
+                                          className="mansaku-range-slider"
+                                          data-effect-line-blank-slider="true"
+                                          type="range"
+                                          min={0}
+                                          max={100}
+                                          step={1}
+                                          value={effectLine.innerBlank}
+                                          disabled={disabled}
+                                          onPointerDown={(e) => e.currentTarget.focus({ preventScroll: true })}
+                                          onFocus={() => setFocusedWheelSliderId("mansaku-slider-frame-effect-line-blank")}
+                                          onBlur={() =>
+                                            setFocusedWheelSliderId((current) =>
+                                              current === "mansaku-slider-frame-effect-line-blank" ? null : current
+                                            )
+                                          }
+                                          onChange={(e) =>
+                                            updateSelectedFrameEffectLine({
+                                              enabled: true,
+                                              innerBlank: Number(e.target.value),
+                                            })
+                                          }
+                                          onWheelCapture={(e) => {
+                                            if (disabled || e.ctrlKey || e.metaKey) return;
+                                            e.preventDefault();
+                                            e.stopPropagation();
+
+                                            const direction = e.deltaY < 0 ? 1 : -1;
+                                            const step = e.shiftKey ? 1 : 4;
+
+                                            updateSelectedFrameEffectLine((current) => ({
+                                              enabled: true,
+                                              innerBlank: clamp(current.innerBlank + direction * step, 0, 100),
+                                            }));
+                                          }}
+                                          style={{ ...sliderInputStyle, flex: 1 }}
+                                        />
+
+                                        <span style={sliderValueLabelStyle}>
+                                          {Math.round(effectLine.innerBlank)}%
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                      <span style={{ fontSize: 12, fontWeight: 700 }}>{t("effectLineDensity")}</span>
+
+                                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                        <input
+                                          id="mansaku-slider-frame-effect-line-density"
+                                          className="mansaku-range-slider"
+                                          type="range"
+                                          min={0}
+                                          max={100}
+                                          step={1}
+                                          value={Math.round(effectLine.density * 100)}
+                                          disabled={disabled}
+                                          onPointerDown={(e) => e.currentTarget.focus({ preventScroll: true })}
+                                          onFocus={() => setFocusedWheelSliderId("mansaku-slider-frame-effect-line-density")}
+                                          onBlur={() =>
+                                            setFocusedWheelSliderId((current) =>
+                                              current === "mansaku-slider-frame-effect-line-density" ? null : current
+                                            )
+                                          }
+                                          onChange={(e) =>
+                                            updateSelectedFrameEffectLine({
+                                              density: clamp(Number(e.target.value) / 100, 0, 1),
+                                            })
+                                          }
+                                          onWheelCapture={(e) => {
+                                            if (disabled || e.ctrlKey || e.metaKey) return;
+                                            e.preventDefault();
+                                            e.stopPropagation();
+
+                                            const direction = e.deltaY < 0 ? 1 : -1;
+                                            const step = e.shiftKey ? 1 : 4;
+
+                                            updateSelectedFrameEffectLine((current) => ({
+                                              enabled: true,
+                                              density: clamp(current.density + (direction * step) / 100, 0, 1),
+                                            }));
+                                          }}
+                                          style={{ ...sliderInputStyle, flex: 1 }}
+                                        />
+
+                                        <span style={sliderValueLabelStyle}>
+                                          {Math.round(effectLine.density * 100)}%
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                      <span style={{ fontSize: 12, fontWeight: 700 }}>{t("effectLineStrokeColor")}</span>
+
+                                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                        {FRAME_EFFECT_LINE_COLOR_MODES.map((mode) => {
+                                          const active = effectLine.colorMode === mode;
+                                          const title =
+                                            mode === "black"
+                                              ? t("effectLineColorBlack")
+                                              : mode === "white"
+                                                ? t("effectLineColorWhite")
+                                                : t("effectLineColorCustom");
+
+                                          return (
+                                            <ToolbarIconButton
+                                              key={mode}
+                                              title={title}
+                                              disabled={disabled}
+                                              onClick={() =>
+                                                updateSelectedFrameEffectLine({
+                                                  colorMode: mode as FrameEffectLineColorMode,
+                                                })
+                                              }
+                                              style={{
+                                                background: active ? "#e5e7eb" : undefined,
+                                              }}
+                                            >
+                                              {getFrameEffectLineColorModeIcon(
+                                                mode as FrameEffectLineColorMode
+                                              )}
+                                            </ToolbarIconButton>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+
+                                    {effectLine.colorMode === "color" && (
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          flexDirection: "column",
+                                          gap: 6,
+                                          opacity: disabled ? 0.45 : 1,
+                                          pointerEvents: disabled ? "none" : "auto",
+                                        }}
+                                      >
+                                        <span style={{ fontSize: 12, fontWeight: 700 }}>
+                                          {t("effectLineColorCustom")}
+                                        </span>
+                                        <ColorPaletteGrid
+                                          value={effectLine.customColor}
+                                          onChange={(color) =>
+                                            updateSelectedFrameEffectLine({ customColor: color })
+                                          }
+                                        />
+                                      </div>
+                                    )}
+
+                                  </>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </CollapsibleEditorSection>
+
+                        <CollapsibleEditorSection sectionKey="frame-border-visible" title={t("frameBorderVisible")} openSectionKey={openEditorSectionKey} setOpenSectionKey={setOpenEditorSectionKey}>
                           {(() => {
                             const selectedFrames =
                               currentPage?.frames.filter((frame) =>

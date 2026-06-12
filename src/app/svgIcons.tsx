@@ -1853,3 +1853,197 @@ export function ColorPreviewSvgIcon({ color }: { color: string }) {
   );
 }
 
+
+// ----------
+// なし
+// ----------
+export function NoneSvgIcon() {
+  return (
+    <svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24" aria-hidden="true">
+      <circle
+        cx="12"
+        cy="12"
+        r="8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={ICON_STROKE}
+      />
+
+      <path
+        d="M6.5 17.5L17.5 6.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={ICON_STROKE * 1.4}
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+// ----------
+// 集中線
+// ----------
+export function FocusLineSvgIcon() {
+  return (
+    <svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24" aria-hidden="true">
+      {/* 線数を抑えた漫画集中線 */}
+      <g fill="currentColor">
+        <path d="M0 0H1.1L8.2 7.6Z" />
+        <path d="M5.2 0H5.9L9.6 6.8Z" />
+        <path d="M11.8 0H12.3L12.1 6.2Z" />
+        <path d="M18.1 0H18.9L14.4 6.9Z" />
+        <path d="M22.9 0H24L15.8 7.6Z" />
+
+        <path d="M0 2.5V3.5L7.5 8.7Z" />
+        <path d="M0 9.4V10L6.4 10.9Z" />
+        <path d="M0 15.6V16.2L6.5 13.4Z" />
+        <path d="M0 22.8V24H1.2L8.1 16.3Z" />
+
+        <path d="M24 2.5V3.5L16.5 8.7Z" />
+        <path d="M24 9.4V10L17.6 10.9Z" />
+        <path d="M24 15.6V16.2L17.5 13.4Z" />
+        <path d="M22.8 24H24V22.8L15.9 16.3Z" />
+
+        <path d="M5.3 24H6.1L9.7 17.2Z" />
+        <path d="M11.7 24H12.2L12 17.8Z" />
+        <path d="M18 24H18.8L14.3 17.1Z" />
+      </g>
+
+      <g
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="butt"
+        strokeLinejoin="round"
+      >
+        <path d="M2.8 0L8.8 7.2" strokeWidth={ICON_STROKE * 0.38} />
+        <path d="M8.4 0L10.5 6.5" strokeWidth={ICON_STROKE * 0.32} />
+        <path d="M15.5 0L13.5 6.5" strokeWidth={ICON_STROKE * 0.32} />
+        <path d="M21.2 0L15.2 7.2" strokeWidth={ICON_STROKE * 0.38} />
+
+        <path d="M0 5.8L6.9 9.7" strokeWidth={ICON_STROKE * 0.34} />
+        <path d="M0 12.4L6.1 12.1" strokeWidth={ICON_STROKE * 0.32} />
+        <path d="M0 19.2L7.1 14.8" strokeWidth={ICON_STROKE * 0.36} />
+
+        <path d="M24 5.8L17.1 9.7" strokeWidth={ICON_STROKE * 0.34} />
+        <path d="M24 12.4L17.9 12.1" strokeWidth={ICON_STROKE * 0.32} />
+        <path d="M24 19.2L16.9 14.8" strokeWidth={ICON_STROKE * 0.36} />
+
+        <path d="M2.9 24L8.8 16.8" strokeWidth={ICON_STROKE * 0.38} />
+        <path d="M8.4 24L10.6 17.6" strokeWidth={ICON_STROKE * 0.32} />
+        <path d="M15.5 24L13.4 17.6" strokeWidth={ICON_STROKE * 0.32} />
+        <path d="M21.1 24L15.2 16.8" strokeWidth={ICON_STROKE * 0.38} />
+      </g>
+    </svg>
+  );
+}
+
+// ----------
+// スピード線
+// ----------
+export function SpeedLineSvgIcon() {
+  return (
+    <svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24" aria-hidden="true">
+      {/* 線数を抑えた漫画スピード線 */}
+      <g fill="currentColor">
+        <path d="M0 2.0H7.2L14.5 2.25L7.2 2.5H0Z" />
+        <path d="M0 4.3H11.5L20.4 4.55L11.5 4.82H0Z" />
+        <path d="M0 6.9H6.7L13.6 7.12L6.7 7.38H0Z" />
+        <path d="M0 9.4H13.2L22.6 9.68L13.2 9.98H0Z" />
+        <path d="M0 12.2H8.6L16.8 12.45L8.6 12.75H0Z" />
+        <path d="M0 15.1H12.2L21.2 15.38L12.2 15.7H0Z" />
+        <path d="M0 18.0H7.6L15.2 18.25L7.6 18.55H0Z" />
+        <path d="M0 20.9H10.4L18.4 21.15L10.4 21.45H0Z" />
+      </g>
+
+      <g fill="none" stroke="currentColor" strokeLinecap="butt">
+        <path d="M0 3.2H12.8" strokeWidth={ICON_STROKE * 0.22} />
+        <path d="M0 5.6H17.3" strokeWidth={ICON_STROKE * 0.24} />
+        <path d="M0 8.1H11.2" strokeWidth={ICON_STROKE * 0.2} />
+        <path d="M0 10.9H19.5" strokeWidth={ICON_STROKE * 0.24} />
+        <path d="M0 13.7H14.6" strokeWidth={ICON_STROKE * 0.2} />
+        <path d="M0 16.7H18.2" strokeWidth={ICON_STROKE * 0.22} />
+        <path d="M0 19.5H12.6" strokeWidth={ICON_STROKE * 0.2} />
+        <path d="M0 22.3H15.8" strokeWidth={ICON_STROKE * 0.22} />
+      </g>
+    </svg>
+  );
+}
+
+// ----------
+// 白
+// ----------
+export function WhiteFillSvgIcon() {
+  return (
+    <svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24" aria-hidden="true">
+      <rect
+        x="3.5"
+        y="3.5"
+        width="17"
+        height="17"
+        rx="3"
+        fill="#ffffff"
+        stroke="#111827"
+        strokeWidth={ICON_STROKE}
+      />
+    </svg>
+  );
+}
+
+// ----------
+// 黒
+// ----------
+export function BlackFillSvgIcon() {
+  return (
+    <svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24" aria-hidden="true">
+      <rect
+        x="3.5"
+        y="3.5"
+        width="17"
+        height="17"
+        rx="3"
+        fill="#111827"
+        stroke="#111827"
+        strokeWidth={ICON_STROKE}
+      />
+    </svg>
+  );
+}
+
+// ----------
+// 虹グラデーション
+// ----------
+export function RainbowFillSvgIcon() {
+  return (
+    <svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24" aria-hidden="true">
+      <defs>
+        <linearGradient
+          id="rainbowFillGradient"
+          x1="3.5"
+          y1="3.5"
+          x2="20.5"
+          y2="20.5"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0%" stopColor="#ef4444" />
+          <stop offset="16%" stopColor="#f97316" />
+          <stop offset="32%" stopColor="#facc15" />
+          <stop offset="48%" stopColor="#22c55e" />
+          <stop offset="64%" stopColor="#06b6d4" />
+          <stop offset="80%" stopColor="#3b82f6" />
+          <stop offset="100%" stopColor="#a855f7" />
+        </linearGradient>
+      </defs>
+
+      <rect
+        x="3.5"
+        y="3.5"
+        width="17"
+        height="17"
+        rx="3"
+        fill="url(#rainbowFillGradient)"
+        stroke="#111827"
+        strokeWidth={ICON_STROKE}
+      />
+    </svg>
+  );
+}
