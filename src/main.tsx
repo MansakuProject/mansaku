@@ -2,8 +2,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import App from "./app/App";
-import { LandingPage } from "./LandingPage";
 import { AdminPage } from "./AdminPage";
+import { LandingPage } from "./lp/LandingPage";
 
 declare global {
   interface Window {

@@ -1,12 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, MouseEvent } from "react";
-import { ContactDialog, submitMansakuContact } from "./app/ContactDialog";
+import { ContactDialog, submitMansakuContact } from "../app/ContactDialog";
 import {
   ReviewDialog,
   fetchMansakuReviewSummary,
   submitMansakuReview,
   type MansakuReviewSummary,
-} from "./app/ReviewDialog";
+} from "../app/ReviewDialog";
+import {
+  normalizeAppLanguage,
+  type AppLanguage,
+} from "../app/i18n";
+import { lpMessages, type LpMessageKey } from "./lpMessages";
 
 type PublicMansakuReviewWithDeveloperReply = {
   id: number | string;
@@ -18,6 +23,54 @@ type PublicMansakuReviewWithDeveloperReply = {
 };
 
 type LegalMode = "terms" | "privacy";
+
+type LandingTranslator = (key: LpMessageKey) => string;
+
+function getPathLandingLanguage(): AppLanguage | null {
+  if (typeof window === "undefined") return null;
+
+  const firstSegment = window.location.pathname
+    .split("/")
+    .filter(Boolean)[0];
+
+  if (!firstSegment) return null;
+
+  const normalized = normalizeAppLanguage(firstSegment);
+
+  return normalized === firstSegment ? normalized : null;
+}
+
+function getInitialLandingLanguage(): AppLanguage {
+  if (typeof window === "undefined") return "ja";
+
+  const pathLanguage = getPathLandingLanguage();
+
+  if (pathLanguage) {
+    return pathLanguage;
+  }
+
+  return "ja";
+}
+
+function getHtmlLang(language: AppLanguage) {
+  return language === "zh" ? "zh-CN" : language;
+}
+
+function setMetaContent(selector: string, content: string) {
+  const element = document.querySelector<HTMLMetaElement>(selector);
+  if (!element) return;
+
+  element.content = content;
+}
+
+function BrandName({ style }: { style?: CSSProperties }) {
+  return (
+    <span translate="no" className="notranslate" style={style}>
+      Mansaku
+    </span>
+  );
+}
+
 
 function getSupabaseConfig() {
   const url = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, "");
@@ -85,14 +138,25 @@ async function fetchApprovedMansakuReviewsWithDeveloperReply(
 }
 
 export function LandingPage() {
+  const language = getInitialLandingLanguage();
+  const t = useMemo(() => {
+    return (key: LpMessageKey) => lpMessages[language]?.[key] ?? lpMessages.en[key] ?? key;
+  }, [language]);
   const isTestMode = isTestModeUrl();
   const isDeveloperLinkVisible = isTestMode || isLocalHost();
   const appLinkHref = getAppLinkHref(isTestMode);
   const adminLinkHref = getAdminLinkHref();
 
   useEffect(() => {
-    document.title = isTestMode ? "Mansaku（テスト）" : "Mansaku";
-  }, [isTestMode]);
+    const title = isTestMode ? t("lpMetaTitleTest") : t("lpMetaTitle");
+
+    document.title = title;
+    document.documentElement.lang = getHtmlLang(language);
+    setMetaContent('meta[name="description"]', t("lpMetaDescription"));
+    setMetaContent('meta[property="og:title"]', title);
+    setMetaContent('meta[property="og:description"]', t("lpMetaOgDescription"));
+    setMetaContent('meta[property="og:image:alt"]', t("lpMetaOgImageAlt"));
+  }, [isTestMode, language, t]);
 
   function isSupportedDesktopBrowser() {
     const ua = navigator.userAgent;
@@ -208,41 +272,41 @@ export function LandingPage() {
 
   const featureImages = [
     {
-      title: "テンプレートから作れる",
-      body: "ページレイアウトを選んで、すぐに漫画ページを作り始められます。",
+      title: t("lpFeatureTemplateTitle"),
+      body: t("lpFeatureTemplateBody"),
       image: "/images/lp/template.webp",
-      alt: "テンプレート選択画面",
+      alt: t("lpFeatureTemplateAlt"),
     },
     {
-      title: "コマを直感的に編集",
-      body: "移動、サイズ変更、分割、画像配置などを画面上で操作できます。",
+      title: t("lpFeatureFrameTitle"),
+      body: t("lpFeatureFrameBody"),
       image: "/images/lp/edit_frame.webp",
-      alt: "コマ編集画面",
+      alt: t("lpFeatureFrameAlt"),
     },
     {
-      title: "吹き出しと効果音に対応",
-      body: "セリフや効果音を配置して、漫画らしい画面を整えられます。",
+      title: t("lpFeatureBubbleTitle"),
+      body: t("lpFeatureBubbleBody"),
       image: "/images/lp/edit_bubble.webp",
-      alt: "吹き出し編集画面",
+      alt: t("lpFeatureBubbleAlt"),
     },
     {
-      title: "PNG / PDF 出力",
-      body: "作成した漫画ページをPNG画像やPDFとして書き出せます。",
+      title: t("lpFeatureExportTitle"),
+      body: t("lpFeatureExportBody"),
       image: "/images/lp/export.webp",
-      alt: "PNGとPDFの出力メニュー",
+      alt: t("lpFeatureExportAlt"),
     },
   ];
 
   return (
-    <main style={pageStyle}>
+    <main translate="no" className="notranslate" style={pageStyle}>
       <section style={heroSectionStyle}>
         <div style={{ display: "grid", gap: 18 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <div style={catchLabelStyle}>シンプルに、まず漫画を形にする。</div>
+            <div style={catchLabelStyle}>{t("lpCatchLabel")}</div>
 
             {isTestMode && (
               <span style={testModeLabelStyle}>
-                テストモード（Analytics除外）
+                {t("lpTestModeLabel")}
               </span>
             )}
           </div>
@@ -254,19 +318,15 @@ export function LandingPage() {
               style={{ width: 64, height: 64, display: "block", flexShrink: 0 }}
             />
 
-            <h1 style={titleStyle}>Mansaku</h1>
+            <h1 style={titleStyle}><BrandName /></h1>
           </div>
 
           <p style={leadStyle}>
-            コマ割り、吹き出し、効果音、画像配置をまとめて扱える、
-            漫画ページ制作ツール。
+            {t("lpHeroLead")}
           </p>
 
           <p style={descriptionStyle}>
-            Mansakuは、お気に入りの画像を並べて、
-            漫画ページを作れるツールです。
-            必要な機能に絞り、ドラッグ中心の直感操作で、
-            漫画ページづくりをスムーズに進められます。
+            {t("lpHeroDescription")}
           </p>
 
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -277,11 +337,11 @@ export function LandingPage() {
               onClick={handleOpenApp}
               style={primaryLinkStyle}
             >
-              Mansakuを開く
+              {t("lpOpenApp")}
             </a>
 
             <a href="#features" style={secondaryLinkStyle}>
-              特徴を見る
+              {t("lpViewFeatures")}
             </a>
 
             {isDeveloperLinkVisible && (
@@ -291,13 +351,13 @@ export function LandingPage() {
                 rel="noopener noreferrer"
                 style={adminLinkStyle}
               >
-                管理画面
+                {t("lpAdmin")}
               </a>
             )}
           </div>
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            {["Windows / macOS", "Chrome / Edge 推奨", "ローカル保存", "無料"].map((label) => (
+            {[t("lpChipDesktop"), t("lpChipBrowser"), t("lpChipLocalSave"), t("lpChipFree")].map((label) => (
               <span key={label} style={chipStyle}>
                 {label}
               </span>
@@ -340,15 +400,15 @@ export function LandingPage() {
         ))}
 
         {publishedReviews.length > 0 && (
-          <section aria-label="利用者の声" style={reviewSectionStyle}>
+          <section aria-label={t("lpReviewsHeading")} style={reviewSectionStyle}>
             <div style={{ display: "grid", gap: 6 }}>
               <h2 style={{ margin: 0, fontSize: 24, lineHeight: 1.4 }}>
-                利用者の声
+                {t("lpReviewsHeading")}
               </h2>
 
               {reviewSummary.count > 0 && reviewSummary.averageRating != null && (
                 <p style={reviewSummaryStyle}>
-                  平均評価 ★{reviewSummary.averageRating.toFixed(1)}
+                  {t("lpAverageRatingPrefix")} ★{reviewSummary.averageRating.toFixed(1)}
                 </p>
               )}
             </div>
@@ -366,12 +426,12 @@ export function LandingPage() {
                   <p style={reviewCommentStyle}>{review.comment}</p>
 
                   <div style={reviewNameStyle}>
-                    — {review.display_name || "匿名ユーザー"}
+                    — {review.display_name || t("lpAnonymousUser")}
                   </div>
 
                   {review.developer_comment_visible && review.developer_comment && (
                     <div style={developerReplyStyle}>
-                      <div style={developerReplyTitleStyle}>開発者より</div>
+                      <div style={developerReplyTitleStyle}>{t("lpDeveloperReplyTitle")}</div>
 
                       <p style={developerReplyTextStyle}>
                         {review.developer_comment}
@@ -385,25 +445,19 @@ export function LandingPage() {
         )}
 
         <article style={ctaSectionStyle}>
-          <h2 style={{ margin: 0, fontSize: 24 }}>レビュー歓迎</h2>
+          <h2 style={{ margin: 0, fontSize: 24 }}>{t("lpReviewWelcomeTitle")}</h2>
 
           <p style={ctaTextStyle}>
-            Mansakuは開発中のツールです。
-            使ってみたレビューとして、
-            評価とコメントを送ってください。
-            <br />
-            <br />
-            気に入っていただけた場合は、
-            開発支援として寄付していただけると励みになります。
+            {t("lpReviewWelcomeBody")}
           </p>
 
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <button type="button" onClick={openReviewForm} style={ctaPrimaryButtonStyle}>
-              レビューを送る
+              {t("lpSendReview")}
             </button>
 
             <button type="button" onClick={openContactForm} style={ctaGhostButtonStyle}>
-              お問い合わせ
+              {t("lpContact")}
             </button>
 
             <a
@@ -412,7 +466,7 @@ export function LandingPage() {
               rel="noopener noreferrer"
               style={ctaGhostLinkStyle}
             >
-              開発を支援する
+              {t("lpSupportDevelopment")}
             </a>
           </div>
         </article>
@@ -420,31 +474,25 @@ export function LandingPage() {
 
       <footer style={footerStyle}>
         <div style={footerInnerStyle}>
-          <div>Mansaku</div>
+          <div><BrandName /></div>
 
           <div>
-            シンプルに漫画ページを作るためのツール。
-            <br />
-            無料で利用できます。
+            {t("lpFooterDescription")}
           </div>
 
           <div>
-            ・Windows / macOS 対応
-            <br />
-            ・Google Chrome / Microsoft Edge 最新版 推奨
-            <br />
-            ・マウス / キーボード操作対応
+            {t("lpFooterRequirements")}
           </div>
 
           <div>© 2026 Mansaku Project</div>
 
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
             <button type="button" onClick={openReviewForm} style={footerLinkStyle}>
-              レビュー
+              {t("lpReview")}
             </button>
 
             <button type="button" onClick={openContactForm} style={footerLinkStyle}>
-              お問い合わせ
+              {t("lpContact")}
             </button>
 
             <button
@@ -452,7 +500,7 @@ export function LandingPage() {
               onClick={() => setLegalMode("terms")}
               style={footerLinkStyle}
             >
-              利用規約
+              {t("lpTerms")}
             </button>
 
             <button
@@ -460,19 +508,19 @@ export function LandingPage() {
               onClick={() => setLegalMode("privacy")}
               style={footerLinkStyle}
             >
-              プライバシーポリシー
+              {t("lpPrivacy")}
             </button>
           </div>
         </div>
       </footer>
 
       {isUnsupportedDeviceOpen && (
-        <UnsupportedDeviceDialog onClose={() => setIsUnsupportedDeviceOpen(false)} />
+        <UnsupportedDeviceDialog t={t} onClose={() => setIsUnsupportedDeviceOpen(false)} />
       )}
 
       <ReviewDialog
         open={isReviewOpen}
-        language="ja"
+        language={language}
         showDismissForever={false}
         onClose={closeReviewForm}
         onSubmit={handleReviewSubmit}
@@ -480,7 +528,7 @@ export function LandingPage() {
 
       <ContactDialog
         open={isContactOpen}
-        language="ja"
+        language={language}
         onClose={closeContactForm}
         onSubmit={handleContactSubmit}
       />
@@ -488,6 +536,7 @@ export function LandingPage() {
       {legalMode && (
         <LegalDialog
           mode={legalMode}
+          t={t}
           onClose={() => setLegalMode(null)}
         />
       )}
@@ -495,7 +544,7 @@ export function LandingPage() {
   );
 }
 
-function UnsupportedDeviceDialog({ onClose }: { onClose: () => void }) {
+function UnsupportedDeviceDialog({ t, onClose }: { t: LandingTranslator; onClose: () => void }) {
   return (
     <div
       role="dialog"
@@ -506,16 +555,15 @@ function UnsupportedDeviceDialog({ onClose }: { onClose: () => void }) {
     >
       <div onClick={(e) => e.stopPropagation()} style={unsupportedDialogStyle}>
         <h2 id="unsupported-device-title" style={dialogTitleStyle}>
-          スマホ・タブレットでは開けません
+          {t("lpUnsupportedTitle")}
         </h2>
 
         <p style={dialogParagraphStyle}>
-          Mansakuは現在、パソコン向けの漫画ページ制作ツールです。
-          Windows または macOS の Google Chrome / Microsoft Edge 最新版で開いてください。
+          {t("lpUnsupportedBody")}
         </p>
 
         <button type="button" onClick={onClose} style={dialogCloseButtonStyle}>
-          閉じる
+          {t("close")}
         </button>
       </div>
     </div>
@@ -524,16 +572,18 @@ function UnsupportedDeviceDialog({ onClose }: { onClose: () => void }) {
 
 function LegalDialog({
   mode,
+  t,
   onClose,
 }: {
   mode: LegalMode;
+  t: LandingTranslator;
   onClose: () => void;
 }) {
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={mode === "terms" ? "利用規約" : "プライバシーポリシー"}
+      aria-label={mode === "terms" ? t("lpTerms") : t("lpPrivacy")}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) {
           onClose();
@@ -545,11 +595,11 @@ function LegalDialog({
         <div style={legalHeaderStyle}>
           <div>
             <div style={legalTitleStyle}>
-              {mode === "terms" ? "利用規約" : "プライバシーポリシー"}
+              {mode === "terms" ? t("lpTerms") : t("lpPrivacy")}
             </div>
 
             <div style={legalDescriptionStyle}>
-              Mansakuの利用条件と、データの取り扱いについてまとめています。
+              {t("lpLegalDescription")}
             </div>
           </div>
 
@@ -557,19 +607,19 @@ function LegalDialog({
             type="button"
             onClick={onClose}
             style={legalCloseIconStyle}
-            aria-label="閉じる"
+            aria-label={t("close")}
           >
             ×
           </button>
         </div>
 
         <div style={legalBodyStyle}>
-          {mode === "terms" ? <TermsContent /> : <PrivacyContent />}
+          {mode === "terms" ? <TermsContent t={t} /> : <PrivacyContent t={t} />}
         </div>
 
         <div style={legalFooterStyle}>
           <button type="button" onClick={onClose} style={legalCloseButtonStyle}>
-            閉じる
+            {t("close")}
           </button>
         </div>
       </div>
@@ -577,122 +627,48 @@ function LegalDialog({
   );
 }
 
-function TermsContent() {
+function TermsContent({ t }: { t: LandingTranslator }) {
   return (
     <div style={legalContentStyle}>
-      <p style={legalParagraphStyle}>
-        Mansakuを利用した時点で、本利用規約に同意したものとみなします。
-      </p>
+      <p style={legalParagraphStyle}>{t("lpTermsIntro")}</p>
 
-      <h3 style={legalSubHeadingStyle}>禁止事項</h3>
+      <h3 style={legalSubHeadingStyle}>{t("lpTermsProhibitedTitle")}</h3>
+      <p style={legalParagraphStyle}>{t("lpTermsProhibitedBody")}</p>
 
-      <p style={legalParagraphStyle}>
-        違法行為、公序良俗に反する行為、
-        第三者の権利を侵害する行為を禁止します。
-      </p>
+      <h3 style={legalSubHeadingStyle}>{t("lpTermsRightsTitle")}</h3>
+      <p style={legalParagraphStyle}>{t("lpTermsRightsBody")}</p>
 
-      <h3 style={legalSubHeadingStyle}>作品・素材の権利</h3>
+      <h3 style={legalSubHeadingStyle}>{t("lpTermsDisclaimerTitle")}</h3>
+      <p style={legalParagraphStyle}>{t("lpTermsDisclaimerBody")}</p>
 
-      <p style={legalParagraphStyle}>
-        Mansakuで作成した作品、
-        読み込んだ画像、
-        出力した画像やPDFの権利は、
-        各ユーザーまたは正当な権利者に帰属します。
-      </p>
-
-      <h3 style={legalSubHeadingStyle}>免責事項</h3>
-
-      <p style={legalParagraphStyle}>
-        Mansakuの利用により発生した損害、
-        データ消失、
-        トラブル等について、
-        Mansaku Projectは責任を負いません。
-        必要なデータはユーザー自身で保存・管理してください。
-      </p>
-
-      <h3 style={legalSubHeadingStyle}>仕様変更</h3>
-
-      <p style={legalParagraphStyle}>
-        Mansakuの仕様、
-        機能、
-        利用規約は予告なく変更される場合があります。
-      </p>
+      <h3 style={legalSubHeadingStyle}>{t("lpTermsChangesTitle")}</h3>
+      <p style={legalParagraphStyle}>{t("lpTermsChangesBody")}</p>
     </div>
   );
 }
 
-function PrivacyContent() {
+function PrivacyContent({ t }: { t: LandingTranslator }) {
   return (
     <div style={legalContentStyle}>
-      <p style={legalParagraphStyle}>
-        Mansakuはログイン、
-        クラウド保存、
-        広告配信を行っていません。
-        レビュー投稿フォームやお問い合わせフォームを利用した場合のみ、
-        ユーザーが入力した内容を外部サービスへ送信します。
-      </p>
+      <p style={legalParagraphStyle}>{t("lpPrivacyIntro")}</p>
 
-      <h3 style={legalSubHeadingStyle}>保存データ</h3>
+      <h3 style={legalSubHeadingStyle}>{t("lpPrivacySavedDataTitle")}</h3>
+      <p style={legalParagraphStyle}>{t("lpPrivacySavedDataBody")}</p>
 
-      <p style={legalParagraphStyle}>
-        プロジェクトデータは、
-        ユーザーのブラウザ内、
-        またはユーザーが選択した保存先に保存されます。
-      </p>
+      <h3 style={legalSubHeadingStyle}>{t("lpPrivacyReviewTitle")}</h3>
+      <p style={legalParagraphStyle}>{t("lpPrivacyReviewBody")}</p>
 
-      <h3 style={legalSubHeadingStyle}>レビュー投稿</h3>
+      <h3 style={legalSubHeadingStyle}>{t("lpPrivacyContactTitle")}</h3>
+      <p style={legalParagraphStyle}>{t("lpPrivacyContactBody")}</p>
 
-      <p style={legalParagraphStyle}>
-        レビュー投稿フォームでは、
-        評価、
-        コメント、
-        表示名、
-        サイト掲載可否を送信できます。
-        送信されたレビューは、
-        内容確認後、
-        掲載を許可されたものに限り
-        公式サイト上で紹介する場合があります。
-      </p>
+      <h3 style={legalSubHeadingStyle}>{t("lpPrivacyExternalTitle")}</h3>
+      <p style={legalParagraphStyle}>{t("lpPrivacyExternalBody")}</p>
 
-      <h3 style={legalSubHeadingStyle}>お問い合わせ</h3>
+      <h3 style={legalSubHeadingStyle}>{t("lpPrivacyCookieTitle")}</h3>
+      <p style={legalParagraphStyle}>{t("lpPrivacyCookieBody")}</p>
 
-      <p style={legalParagraphStyle}>
-        お問い合わせフォームでは、
-        名前、
-        メールアドレス、
-        種別、
-        お問い合わせ内容を送信できます。
-        名前とメールアドレスは任意です。
-        返信が必要な場合はメールアドレスを入力してください。
-      </p>
-
-      <h3 style={legalSubHeadingStyle}>外部送信</h3>
-
-      <p style={legalParagraphStyle}>
-        レビュー投稿フォームやお問い合わせフォームから送信された内容は、
-        管理のため外部サービスに保存されます。
-        作品データ、
-        読み込んだ画像、
-        出力したPNG・PDF・JSONは、
-        レビュー投稿やお問い合わせによって送信されません。
-      </p>
-
-      <h3 style={legalSubHeadingStyle}>Cookie等</h3>
-
-      <p style={legalParagraphStyle}>
-        レビュー投稿フォームの表示制御や動作確認のため、
-        ブラウザのローカルストレージを利用する場合があります。
-        広告配信サービスを利用したトラッキングは行っていません。
-      </p>
-
-      <h3 style={legalSubHeadingStyle}>出力・保存ファイル</h3>
-
-      <p style={legalParagraphStyle}>
-        ユーザーが出力・保存したPNG、
-        PDF、
-        JSON等のファイルは、
-        ユーザー自身が管理します。
-      </p>
+      <h3 style={legalSubHeadingStyle}>{t("lpPrivacyOutputTitle")}</h3>
+      <p style={legalParagraphStyle}>{t("lpPrivacyOutputBody")}</p>
     </div>
   );
 }
