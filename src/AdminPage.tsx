@@ -48,7 +48,9 @@ const ADMIN_SESSION_STORAGE_KEY = "mansaku_admin_session_v1";
 const ADMIN_EMAIL = "mansakuproject@gmail.com";
 
 function getSupabaseConfig() {
-  const url = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, "");
+  const url = (
+    import.meta.env.VITE_SUPABASE_URL as string | undefined
+  )?.replace(/\/$/, "");
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
   return { url, anonKey };
@@ -203,16 +205,19 @@ async function refreshSession(session: AdminSession): Promise<AdminSession> {
     throw new Error("Supabase設定が見つかりません。");
   }
 
-  const response = await fetch(`${url}/auth/v1/token?grant_type=refresh_token`, {
-    method: "POST",
-    headers: {
-      apikey: anonKey,
-      "Content-Type": "application/json",
+  const response = await fetch(
+    `${url}/auth/v1/token?grant_type=refresh_token`,
+    {
+      method: "POST",
+      headers: {
+        apikey: anonKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        refresh_token: session.refresh_token,
+      }),
     },
-    body: JSON.stringify({
-      refresh_token: session.refresh_token,
-    }),
-  });
+  );
 
   if (!response.ok) {
     throw new Error("セッションを更新できませんでした。");
@@ -240,7 +245,9 @@ async function getValidSession(session: AdminSession): Promise<AdminSession> {
   return refreshed;
 }
 
-async function fetchAdminReviews(session: AdminSession): Promise<AdminReview[]> {
+async function fetchAdminReviews(
+  session: AdminSession,
+): Promise<AdminReview[]> {
   const { url, anonKey } = getSupabaseConfig();
   if (!url || !anonKey) {
     throw new Error("Supabase設定が見つかりません。");
@@ -269,7 +276,7 @@ async function fetchAdminReviews(session: AdminSession): Promise<AdminReview[]> 
         apikey: anonKey,
         Authorization: `Bearer ${session.access_token}`,
       },
-    }
+    },
   );
 
   if (!response.ok) {
@@ -303,7 +310,7 @@ async function updateReviewApproved(params: {
         approved: params.approved,
         rejected: false,
       }),
-    }
+    },
   );
 
   if (!response.ok) {
@@ -335,7 +342,7 @@ async function updateReviewRejected(params: {
         approved: false,
         rejected: params.rejected,
       }),
-    }
+    },
   );
 
   if (!response.ok) {
@@ -367,14 +374,15 @@ async function updateReviewDecision(params: {
         approved: params.decision === "approved",
         rejected: params.decision === "rejected",
       }),
-    }
+    },
   );
 
   if (!response.ok) {
-    throw new Error(`レビュー対応状態を更新できませんでした。${response.status}`);
+    throw new Error(
+      `レビュー対応状態を更新できませんでした。${response.status}`,
+    );
   }
 }
-
 
 async function updateReviewDeveloperReply(params: {
   session: AdminSession;
@@ -401,9 +409,10 @@ async function updateReviewDeveloperReply(params: {
       },
       body: JSON.stringify({
         developer_comment: trimmedReply.length > 0 ? trimmedReply : null,
-        developer_comment_visible: trimmedReply.length > 0 ? params.developerReplyVisible : false,
+        developer_comment_visible:
+          trimmedReply.length > 0 ? params.developerReplyVisible : false,
       }),
-    }
+    },
   );
 
   if (!response.ok) {
@@ -412,11 +421,14 @@ async function updateReviewDeveloperReply(params: {
 
   return {
     developer_comment: trimmedReply.length > 0 ? trimmedReply : null,
-    developer_comment_visible: trimmedReply.length > 0 ? params.developerReplyVisible : false,
+    developer_comment_visible:
+      trimmedReply.length > 0 ? params.developerReplyVisible : false,
   };
 }
 
-async function fetchAdminContactMessages(session: AdminSession): Promise<AdminContactMessage[]> {
+async function fetchAdminContactMessages(
+  session: AdminSession,
+): Promise<AdminContactMessage[]> {
   const { url, anonKey } = getSupabaseConfig();
   if (!url || !anonKey) {
     throw new Error("Supabase設定が見つかりません。");
@@ -442,7 +454,7 @@ async function fetchAdminContactMessages(session: AdminSession): Promise<AdminCo
         apikey: anonKey,
         Authorization: `Bearer ${session.access_token}`,
       },
-    }
+    },
   );
 
   if (!response.ok) {
@@ -475,7 +487,7 @@ async function updateContactResolved(params: {
       body: JSON.stringify({
         resolved: params.resolved,
       }),
-    }
+    },
   );
 
   if (!response.ok) {
@@ -510,7 +522,7 @@ async function updateContactReplyMemo(params: {
         reply_memo: trimmedMemo.length > 0 ? trimmedMemo : null,
         replied_at: repliedAt,
       }),
-    }
+    },
   );
 
   if (!response.ok) {
@@ -524,7 +536,9 @@ async function updateContactReplyMemo(params: {
 }
 
 export function AdminPage() {
-  const [session, setSession] = useState<AdminSession | null>(() => readStoredSession());
+  const [session, setSession] = useState<AdminSession | null>(() =>
+    readStoredSession(),
+  );
 
   useEffect(() => {
     document.title = "Mansaku - 管理画面";
@@ -536,21 +550,27 @@ export function AdminPage() {
   const [contacts, setContacts] = useState<AdminContactMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState<number | string | null>(null);
-  const [savingContactId, setSavingContactId] = useState<number | string | null>(null);
+  const [savingContactId, setSavingContactId] = useState<
+    number | string | null
+  >(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter>("all");
   const [reviewSearch, setReviewSearch] = useState("");
-  const [contactFilter, setContactFilter] = useState<"all" | "open" | "resolved">("all");
+  const [contactFilter, setContactFilter] = useState<
+    "all" | "open" | "resolved"
+  >("all");
   const [contactSearch, setContactSearch] = useState("");
 
   const reviewCounts = useMemo(() => {
     const total = reviews.length;
     const approved = reviews.filter((review) => !!review.approved).length;
-    const publishAllowed = reviews.filter((review) => !!review.allow_publish).length;
+    const publishAllowed = reviews.filter(
+      (review) => !!review.allow_publish,
+    ).length;
     const rejected = reviews.filter((review) => !!review.rejected).length;
     const open = reviews.filter(
-      (review) => !review.approved && !review.rejected
+      (review) => !review.approved && !review.rejected,
     ).length;
     const blocked = reviews.filter((review) => !review.allow_publish).length;
 
@@ -647,7 +667,11 @@ export function AdminPage() {
       setContacts(nextContacts);
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "管理データを取得できませんでした。");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "管理データを取得できませんでした。",
+      );
     } finally {
       setLoading(false);
     }
@@ -684,7 +708,9 @@ export function AdminPage() {
       setContacts(nextContacts);
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "ログインできませんでした。");
+      setError(
+        err instanceof Error ? err.message : "ログインできませんでした。",
+      );
     } finally {
       setLoading(false);
     }
@@ -706,7 +732,7 @@ export function AdminPage() {
 
     if (nextApproved && !review.allow_publish) {
       const ok = window.confirm(
-        "投稿者がLP掲載を許可していません。それでも掲載ONにしますか？"
+        "投稿者がLP掲載を許可していません。それでも掲載ONにしますか？",
       );
       if (!ok) return;
     }
@@ -727,14 +753,22 @@ export function AdminPage() {
 
       setReviews((prev) =>
         prev.map((item) =>
-          item.id === review.id ? { ...item, approved: nextApproved, rejected: false } : item
-        )
+          item.id === review.id
+            ? { ...item, approved: nextApproved, rejected: false }
+            : item,
+        ),
       );
 
-      setMessage(nextApproved ? "レビューを承認してLP掲載をONにしました。" : "レビューを未対応に戻しました。");
+      setMessage(
+        nextApproved
+          ? "レビューを承認してLP掲載をONにしました。"
+          : "レビューを未対応に戻しました。",
+      );
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "掲載状態を更新できませんでした。");
+      setError(
+        err instanceof Error ? err.message : "掲載状態を更新できませんでした。",
+      );
     } finally {
       setSavingId(null);
     }
@@ -763,14 +797,22 @@ export function AdminPage() {
         prev.map((item) =>
           item.id === review.id
             ? { ...item, approved: false, rejected: nextRejected }
-            : item
-        )
+            : item,
+        ),
       );
 
-      setMessage(nextRejected ? "レビューを不承認にしました。" : "レビューを未対応に戻しました。");
+      setMessage(
+        nextRejected
+          ? "レビューを不承認にしました。"
+          : "レビューを未対応に戻しました。",
+      );
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "不承認状態を更新できませんでした。");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "不承認状態を更新できませんでした。",
+      );
     } finally {
       setSavingId(null);
     }
@@ -778,7 +820,7 @@ export function AdminPage() {
 
   const handleSetReviewDecision = async (
     review: AdminReview,
-    decision: "open" | "approved" | "rejected"
+    decision: "open" | "approved" | "rejected",
   ) => {
     if (!session) return;
 
@@ -809,25 +851,28 @@ export function AdminPage() {
                 approved: decision === "approved",
                 rejected: decision === "rejected",
               }
-            : item
-        )
+            : item,
+        ),
       );
 
       setMessage(
         decision === "approved"
           ? "レビューを承認して対応済みにしました。"
           : decision === "rejected"
-          ? "レビューを拒否して対応済みにしました。"
-          : "レビューを未対応に戻しました。"
+            ? "レビューを拒否して対応済みにしました。"
+            : "レビューを未対応に戻しました。",
       );
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "レビュー対応状態を更新できませんでした。");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "レビュー対応状態を更新できませんでした。",
+      );
     } finally {
       setSavingId(null);
     }
   };
-
 
   const handleSaveReviewDeveloperReply = async (params: {
     review: AdminReview;
@@ -859,14 +904,18 @@ export function AdminPage() {
                 developer_comment: updated.developer_comment,
                 developer_comment_visible: updated.developer_comment_visible,
               }
-            : item
-        )
+            : item,
+        ),
       );
 
       setMessage("開発者コメントを保存しました。");
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "開発者コメントを保存できませんでした。");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "開発者コメントを保存できませんでした。",
+      );
     } finally {
       setSavingId(null);
     }
@@ -893,14 +942,20 @@ export function AdminPage() {
 
       setContacts((prev) =>
         prev.map((item) =>
-          item.id === contact.id ? { ...item, resolved: nextResolved } : item
-        )
+          item.id === contact.id ? { ...item, resolved: nextResolved } : item,
+        ),
       );
 
-      setMessage(nextResolved ? "問い合わせを対応済みにしました。" : "問い合わせを未対応に戻しました。");
+      setMessage(
+        nextResolved
+          ? "問い合わせを対応済みにしました。"
+          : "問い合わせを未対応に戻しました。",
+      );
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "対応状態を更新できませんでした。");
+      setError(
+        err instanceof Error ? err.message : "対応状態を更新できませんでした。",
+      );
     } finally {
       setSavingContactId(null);
     }
@@ -934,14 +989,16 @@ export function AdminPage() {
                 reply_memo: updated.reply_memo,
                 replied_at: updated.replied_at,
               }
-            : item
-        )
+            : item,
+        ),
       );
 
       setMessage("返信メモを保存しました。");
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "返信メモを保存できませんでした。");
+      setError(
+        err instanceof Error ? err.message : "返信メモを保存できませんでした。",
+      );
     } finally {
       setSavingContactId(null);
     }
@@ -960,16 +1017,17 @@ export function AdminPage() {
             </p>
           </div>
 
-          <a
-            href={isTestMode ? "/?test=1" : "/"}
-            style={linkStyle}
-          >
+          <a href={isTestMode ? "/?test=1" : "/"} style={linkStyle}>
             LPへ戻る
           </a>
         </header>
 
-        {message && <MessageBox kind="success">{message}</MessageBox>}
-        {error && <MessageBox kind="error">{error}</MessageBox>}
+        {(message || error) && (
+          <div style={session ? adminNoticeAreaStyle : undefined}>
+            {message && <MessageBox kind="success">{message}</MessageBox>}
+            {error && <MessageBox kind="error">{error}</MessageBox>}
+          </div>
+        )}
 
         {!session ? (
           <LoginPanel
@@ -984,10 +1042,14 @@ export function AdminPage() {
           <div style={adminLayoutStyle}>
             <aside style={sideNavStyle}>
               <div style={loginInfoStyle}>
-                <div style={{ color: "#6b7280", fontSize: 12, fontWeight: 800 }}>
+                <div
+                  style={{ color: "#6b7280", fontSize: 12, fontWeight: 800 }}
+                >
                   Mansaku管理
                 </div>
-                <div style={{ color: "#111827", fontSize: 13, fontWeight: 900 }}>
+                <div
+                  style={{ color: "#111827", fontSize: 13, fontWeight: 900 }}
+                >
                   {session.user.email || ADMIN_EMAIL}
                 </div>
               </div>
@@ -1021,7 +1083,11 @@ export function AdminPage() {
                 >
                   更新
                 </button>
-                <button type="button" onClick={handleLogout} style={secondaryButtonStyle}>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  style={secondaryButtonStyle}
+                >
                   ログアウト
                 </button>
               </div>
@@ -1117,7 +1183,11 @@ function LoginPanel({
         />
       </label>
 
-      <button type="submit" disabled={loading} style={primaryButtonStyle(loading)}>
+      <button
+        type="submit"
+        disabled={loading}
+        style={primaryButtonStyle(loading)}
+      >
         {loading ? "ログイン中..." : "ログイン"}
       </button>
     </form>
@@ -1152,37 +1222,55 @@ function DashboardPanel({
     <div style={panelRootStyle}>
       <div>
         <h2 style={panelTitleStyle}>ダッシュボード</h2>
-        <p style={panelDescriptionStyle}>
-          Mansakuの管理状況を確認します。
-        </p>
+        <p style={panelDescriptionStyle}>Mansakuの管理状況を確認します。</p>
       </div>
 
       <div style={statusGridStyle}>
         <StatusCard label="総レビュー" value={counts.total} />
-        <StatusCard label="未対応レビュー" value={counts.open} tone={counts.open > 0 ? "warning" : "normal"} />
+        <StatusCard
+          label="未対応レビュー"
+          value={counts.open}
+          tone={counts.open > 0 ? "warning" : "normal"}
+        />
         <StatusCard label="承認レビュー" value={counts.approved} />
         <StatusCard label="不承認レビュー" value={counts.rejected} />
         <StatusCard label="投稿者掲載不可" value={counts.blocked} />
         <StatusCard label="問い合わせ件数" value={contactCounts.total} />
-        <StatusCard label="未対応問い合わせ" value={contactCounts.open} tone={contactCounts.open > 0 ? "warning" : "normal"} />
+        <StatusCard
+          label="未対応問い合わせ"
+          value={contactCounts.open}
+          tone={contactCounts.open > 0 ? "warning" : "normal"}
+        />
       </div>
 
       <div style={panelCardStyle}>
         <h3 style={{ margin: 0, fontSize: 17 }}>レビュー承認</h3>
-        <p style={{ margin: 0, color: "#6b7280", lineHeight: 1.7, fontSize: 14 }}>
+        <p
+          style={{ margin: 0, color: "#6b7280", lineHeight: 1.7, fontSize: 14 }}
+        >
           投稿者がLP掲載を許可したレビューのうち、未対応のものを確認できます。
         </p>
-        <button type="button" onClick={onOpenReviews} style={primaryInlineButtonStyle}>
+        <button
+          type="button"
+          onClick={onOpenReviews}
+          style={primaryInlineButtonStyle}
+        >
           レビュー管理を開く
         </button>
       </div>
 
       <div style={panelCardStyle}>
         <h3 style={{ margin: 0, fontSize: 17 }}>問い合わせ管理</h3>
-        <p style={{ margin: 0, color: "#6b7280", lineHeight: 1.7, fontSize: 14 }}>
+        <p
+          style={{ margin: 0, color: "#6b7280", lineHeight: 1.7, fontSize: 14 }}
+        >
           問い合わせ一覧と対応済み状態を確認できます。
         </p>
-        <button type="button" onClick={onOpenContacts} style={primaryInlineButtonStyle}>
+        <button
+          type="button"
+          onClick={onOpenContacts}
+          style={primaryInlineButtonStyle}
+        >
           問い合わせ管理を開く
         </button>
       </div>
@@ -1212,7 +1300,10 @@ function ReviewPanel({
   savingId: number | string | null;
   onFilterChange: (value: ReviewFilter) => void;
   onSearchChange: (value: string) => void;
-  onSetDecision: (review: AdminReview, decision: "open" | "approved" | "rejected") => void;
+  onSetDecision: (
+    review: AdminReview,
+    decision: "open" | "approved" | "rejected",
+  ) => void;
   onSaveDeveloperReply: (params: {
     review: AdminReview;
     developerReply: string;
@@ -1223,26 +1314,39 @@ function ReviewPanel({
     <div style={panelRootStyle}>
       <div>
         <h2 style={panelTitleStyle}>レビュー管理</h2>
-        <p style={panelDescriptionStyle}>
-          行ごとにLP掲載状態を切り替えます。
-        </p>
+        <p style={panelDescriptionStyle}>行ごとにLP掲載状態を切り替えます。</p>
       </div>
 
       <div style={toolbarStyle}>
         <div style={filterGroupStyle}>
-          <FilterButton active={filter === "all"} onClick={() => onFilterChange("all")}>
+          <FilterButton
+            active={filter === "all"}
+            onClick={() => onFilterChange("all")}
+          >
             全件
           </FilterButton>
-          <FilterButton active={filter === "open"} onClick={() => onFilterChange("open")}>
+          <FilterButton
+            active={filter === "open"}
+            onClick={() => onFilterChange("open")}
+          >
             未対応
           </FilterButton>
-          <FilterButton active={filter === "approved"} onClick={() => onFilterChange("approved")}>
+          <FilterButton
+            active={filter === "approved"}
+            onClick={() => onFilterChange("approved")}
+          >
             承認
           </FilterButton>
-          <FilterButton active={filter === "rejected"} onClick={() => onFilterChange("rejected")}>
+          <FilterButton
+            active={filter === "rejected"}
+            onClick={() => onFilterChange("rejected")}
+          >
             拒否
           </FilterButton>
-          <FilterButton active={filter === "blocked"} onClick={() => onFilterChange("blocked")}>
+          <FilterButton
+            active={filter === "blocked"}
+            onClick={() => onFilterChange("blocked")}
+          >
             投稿許可NG
           </FilterButton>
         </div>
@@ -1289,8 +1393,12 @@ function ReviewPanel({
                   <Td style={ratingColumnStyle}>
                     <StarRating rating={review.rating} />
                   </Td>
-                  <Td style={dateColumnStyle}>{formatDateTime(review.created_at)}</Td>
-                  <Td style={versionColumnStyle}>{review.app_version ? `v${review.app_version}` : "-"}</Td>
+                  <Td style={dateColumnStyle}>
+                    {formatDateTime(review.created_at)}
+                  </Td>
+                  <Td style={versionColumnStyle}>
+                    {review.app_version ? `v${review.app_version}` : "-"}
+                  </Td>
                   <Td style={nameColumnStyle}>
                     <div style={nameCellStyle}>
                       {review.display_name || "匿名"}
@@ -1309,21 +1417,34 @@ function ReviewPanel({
                     />
                   </Td>
                   <Td style={reviewAllowColumnStyle}>
-                    <BoolPill value={!!review.allow_publish} trueLabel="OK" falseLabel="NG" />
+                    <BoolPill
+                      value={!!review.allow_publish}
+                      trueLabel="OK"
+                      falseLabel="NG"
+                    />
                   </Td>
                   <Td style={reviewActionColumnStyle}>
                     <div style={decisionButtonGroupStyle}>
                       <button
                         type="button"
                         onClick={() =>
-                          onSetDecision(review, review.approved ? "open" : "approved")
+                          onSetDecision(
+                            review,
+                            review.approved ? "open" : "approved",
+                          )
                         }
-                        disabled={savingId === review.id || !review.allow_publish}
-                        title={!review.allow_publish ? "投稿者が掲載を許可していません" : undefined}
+                        disabled={
+                          savingId === review.id || !review.allow_publish
+                        }
+                        title={
+                          !review.allow_publish
+                            ? "投稿者が掲載を許可していません"
+                            : undefined
+                        }
                         style={decisionButtonStyle(
                           !!review.approved,
                           savingId === review.id || !review.allow_publish,
-                          "approved"
+                          "approved",
                         )}
                       >
                         承認
@@ -1331,13 +1452,16 @@ function ReviewPanel({
                       <button
                         type="button"
                         onClick={() =>
-                          onSetDecision(review, review.rejected ? "open" : "rejected")
+                          onSetDecision(
+                            review,
+                            review.rejected ? "open" : "rejected",
+                          )
                         }
                         disabled={savingId === review.id}
                         style={decisionButtonStyle(
                           !!review.rejected,
                           savingId === review.id,
-                          "rejected"
+                          "rejected",
                         )}
                       >
                         拒否
@@ -1354,7 +1478,6 @@ function ReviewPanel({
   );
 }
 
-
 function DeveloperReplyEditor({
   review,
   saving,
@@ -1368,9 +1491,11 @@ function DeveloperReplyEditor({
     developerReplyVisible: boolean;
   }) => void;
 }) {
-  const [developerReply, setDeveloperReply] = useState(review.developer_comment ?? "");
+  const [developerReply, setDeveloperReply] = useState(
+    review.developer_comment ?? "",
+  );
   const [developerReplyVisible, setDeveloperReplyVisible] = useState(
-    !!review.developer_comment_visible
+    !!review.developer_comment_visible,
   );
 
   useEffect(() => {
@@ -1456,13 +1581,22 @@ function ContactPanel({
 
       <div style={toolbarStyle}>
         <div style={filterGroupStyle}>
-          <FilterButton active={filter === "all"} onClick={() => onFilterChange("all")}>
+          <FilterButton
+            active={filter === "all"}
+            onClick={() => onFilterChange("all")}
+          >
             全件
           </FilterButton>
-          <FilterButton active={filter === "open"} onClick={() => onFilterChange("open")}>
+          <FilterButton
+            active={filter === "open"}
+            onClick={() => onFilterChange("open")}
+          >
             未対応
           </FilterButton>
-          <FilterButton active={filter === "resolved"} onClick={() => onFilterChange("resolved")}>
+          <FilterButton
+            active={filter === "resolved"}
+            onClick={() => onFilterChange("resolved")}
+          >
             対応済み
           </FilterButton>
         </div>
@@ -1507,7 +1641,9 @@ function ContactPanel({
                         ...pillBaseStyle,
                         background: contact.resolved ? "#ecfdf5" : "#fffbeb",
                         color: contact.resolved ? "#047857" : "#92400e",
-                        border: contact.resolved ? "1px solid #a7f3d0" : "1px solid #fde68a",
+                        border: contact.resolved
+                          ? "1px solid #a7f3d0"
+                          : "1px solid #fde68a",
                       }}
                     >
                       {contact.resolved ? "対応済み" : "未対応"}
@@ -1522,9 +1658,7 @@ function ContactPanel({
                   </Td>
 
                   <Td style={nameColumnStyle}>
-                    <div style={nameCellStyle}>
-                      {contact.name || "匿名"}
-                    </div>
+                    <div style={nameCellStyle}>{contact.name || "匿名"}</div>
                   </Td>
 
                   <Td style={emailColumnStyle}>
@@ -1554,9 +1688,16 @@ function ContactPanel({
                       type="button"
                       onClick={() => onToggleResolved(contact)}
                       disabled={savingId === contact.id}
-                      style={approvalButtonStyle(!!contact.resolved, savingId === contact.id)}
+                      style={approvalButtonStyle(
+                        !!contact.resolved,
+                        savingId === contact.id,
+                      )}
                     >
-                      {savingId === contact.id ? "更新中" : contact.resolved ? "対応済み" : "対応する"}
+                      {savingId === contact.id
+                        ? "更新中"
+                        : contact.resolved
+                          ? "対応済み"
+                          : "対応する"}
                     </button>
                   </Td>
                 </tr>
@@ -1601,10 +1742,7 @@ function ContactReplyMemoEditor({
 }: {
   contact: AdminContactMessage;
   saving: boolean;
-  onSave: (params: {
-    contact: AdminContactMessage;
-    replyMemo: string;
-  }) => void;
+  onSave: (params: { contact: AdminContactMessage; replyMemo: string }) => void;
 }) {
   const [replyMemo, setReplyMemo] = useState(contact.reply_memo ?? "");
 
@@ -1702,8 +1840,12 @@ function StatusCard({
         minWidth: 140,
       }}
     >
-      <div style={{ color: "#6b7280", fontSize: 12, fontWeight: 800 }}>{label}</div>
-      <div style={{ color: "#111827", fontSize: 28, fontWeight: 900 }}>{value}</div>
+      <div style={{ color: "#6b7280", fontSize: 12, fontWeight: 800 }}>
+        {label}
+      </div>
+      <div style={{ color: "#111827", fontSize: 28, fontWeight: 900 }}>
+        {value}
+      </div>
     </div>
   );
 }
@@ -1724,7 +1866,9 @@ function StatusPill({ review }: { review: AdminReview }) {
     },
   };
 
-  return <span style={{ ...pillBaseStyle, ...styleByStatus[status] }}>{status}</span>;
+  return (
+    <span style={{ ...pillBaseStyle, ...styleByStatus[status] }}>{status}</span>
+  );
 }
 
 function BoolPill({
@@ -1756,9 +1900,7 @@ function StarRating({ rating }: { rating: number }) {
   return (
     <span aria-label={`${safeRating} / 5`} style={starStyle}>
       {"★".repeat(safeRating)}
-      <span style={{ color: "#d1d5db" }}>
-        {"★".repeat(5 - safeRating)}
-      </span>
+      <span style={{ color: "#d1d5db" }}>{"★".repeat(5 - safeRating)}</span>
     </span>
   );
 }
@@ -1802,7 +1944,9 @@ function StickyLeftTh({ children }: { children: React.ReactNode }) {
 }
 
 function StickyReviewAllowTh({ children }: { children: React.ReactNode }) {
-  return <th style={{ ...thStyle, ...stickyReviewAllowHeaderStyle }}>{children}</th>;
+  return (
+    <th style={{ ...thStyle, ...stickyReviewAllowHeaderStyle }}>{children}</th>
+  );
 }
 
 function StickyRightTh({ children }: { children: React.ReactNode }) {
@@ -1824,7 +1968,9 @@ function StickyLeftTd({ children }: { children: React.ReactNode }) {
 }
 
 function StickyReviewAllowTd({ children }: { children: React.ReactNode }) {
-  return <td style={{ ...tdStyle, ...stickyReviewAllowCellStyle }}>{children}</td>;
+  return (
+    <td style={{ ...tdStyle, ...stickyReviewAllowCellStyle }}>{children}</td>
+  );
 }
 
 function StickyRightTd({ children }: { children: React.ReactNode }) {
@@ -1885,6 +2031,13 @@ const adminLayoutStyle: CSSProperties = {
   gridTemplateColumns: `${ADMIN_SIDEBAR_WIDTH}px minmax(0, 1fr)`,
   gap: ADMIN_LAYOUT_GAP,
   alignItems: "start",
+};
+
+const adminNoticeAreaStyle: CSSProperties = {
+  marginLeft: ADMIN_SIDEBAR_WIDTH + ADMIN_LAYOUT_GAP,
+  minWidth: 0,
+  display: "grid",
+  gap: 8,
 };
 
 const sideNavStyle: CSSProperties = {
@@ -2413,7 +2566,6 @@ const starStyle: CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-
 const developerReplyEditorStyle: CSSProperties = {
   display: "grid",
   gap: 6,
@@ -2470,14 +2622,26 @@ const decisionButtonGroupStyle: CSSProperties = {
 function decisionButtonStyle(
   active: boolean,
   disabled: boolean,
-  kind: "open" | "approved" | "rejected"
+  kind: "open" | "approved" | "rejected",
 ): CSSProperties {
   const activeBackground =
-    kind === "approved" ? "#2563eb" : kind === "rejected" ? "#dc2626" : "#111827";
+    kind === "approved"
+      ? "#2563eb"
+      : kind === "rejected"
+        ? "#dc2626"
+        : "#111827";
   const inactiveBackground =
-    kind === "approved" ? "#dbeafe" : kind === "rejected" ? "#fee2e2" : "#e5e7eb";
+    kind === "approved"
+      ? "#dbeafe"
+      : kind === "rejected"
+        ? "#fee2e2"
+        : "#e5e7eb";
   const inactiveColor =
-    kind === "approved" ? "#1d4ed8" : kind === "rejected" ? "#991b1b" : "#374151";
+    kind === "approved"
+      ? "#1d4ed8"
+      : kind === "rejected"
+        ? "#991b1b"
+        : "#374151";
 
   return {
     minHeight: 30,
@@ -2496,7 +2660,10 @@ function decisionButtonStyle(
   };
 }
 
-function approvalButtonStyle(approved: boolean, saving: boolean): CSSProperties {
+function approvalButtonStyle(
+  approved: boolean,
+  saving: boolean,
+): CSSProperties {
   return {
     minHeight: 32,
     minWidth: 52,
