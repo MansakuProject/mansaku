@@ -4658,10 +4658,16 @@ export default function App() {
 
   const sliderWheelHistoryRef = useRef<{
     pages: Page[];
-    targetKind: "bubbleTone" | "frameImageScale";
+    targetKind: "bubbleTone" | "frameImageScale" | "frameEffectLine";
     targetId: number;
     changed: boolean;
     timeoutId: number | null;
+  } | null>(null);
+
+  const frameEffectLineSliderHistoryRef = useRef<{
+    pages: Page[];
+    frameIds: number[];
+    changed: boolean;
   } | null>(null);
 
   const fontSizeInputHistoryRef = useRef<{
@@ -6235,7 +6241,7 @@ export default function App() {
 
 
   function prepareSliderWheelHistory(
-    targetKind: "bubbleTone" | "frameImageScale",
+    targetKind: "bubbleTone" | "frameImageScale" | "frameEffectLine",
     targetId: number
   ) {
     const current = sliderWheelHistoryRef.current;
@@ -6272,6 +6278,34 @@ export default function App() {
     snapshot.timeoutId = window.setTimeout(() => {
       commitSliderWheelHistory();
     }, 320);
+  }
+
+  function beginFrameEffectLineSliderHistory(frameIds: number[]) {
+    frameEffectLineSliderHistoryRef.current = {
+      pages: clonePages(pagesRef.current),
+      frameIds: [...frameIds],
+      changed: false,
+    };
+  }
+
+  function markFrameEffectLineSliderHistoryChanged() {
+    const snapshot = frameEffectLineSliderHistoryRef.current;
+    if (!snapshot) return;
+    snapshot.changed = true;
+  }
+
+  function commitFrameEffectLineSliderHistory() {
+    const snapshot = frameEffectLineSliderHistoryRef.current;
+    frameEffectLineSliderHistoryRef.current = null;
+
+    if (!snapshot?.changed) return;
+
+    setUndoStack((stack) => pushUndoHistory(stack, createHistorySnapshot(snapshot.pages)));
+    setRedoStack([]);
+  }
+
+  function cancelFrameEffectLineSliderHistory() {
+    frameEffectLineSliderHistoryRef.current = null;
   }
 
   useEffect(() => {
@@ -7074,14 +7108,18 @@ useLayoutEffect(() => {
     const direction = deltaY < 0 ? 1 : -1;
     const step = largeStep ? 4 : 1;
 
+    prepareSliderWheelHistory("frameEffectLine", frameId);
+
     updateFrameEffectLineDirect(
       frameId,
       (current) => ({
         enabled: true,
         innerBlank: clamp(current.innerBlank + direction * step, 0, 100),
       }),
-      { recordHistory: true }
+      { recordHistory: false }
     );
+
+    markSliderWheelHistoryChanged();
   };
 
   const changeFrameEffectLineDensityByWheel = (
@@ -7092,14 +7130,18 @@ useLayoutEffect(() => {
     const direction = deltaY < 0 ? 1 : -1;
     const step = largeStep ? 4 : 1;
 
+    prepareSliderWheelHistory("frameEffectLine", frameId);
+
     updateFrameEffectLineDirect(
       frameId,
       (current) => ({
         enabled: true,
         density: clamp(current.density + (direction * step) / 100, 0, 1),
       }),
-      { recordHistory: true }
+      { recordHistory: false }
     );
+
+    markSliderWheelHistoryChanged();
   };
 
   useEffect(() => {
@@ -24650,12 +24692,14 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                             const updateSelectedFrameEffectLine = (
                               patch:
                                 | Partial<ReturnType<typeof getFrameEffectLineFields>>
-                                | ((current: ReturnType<typeof getFrameEffectLineFields>) => Partial<ReturnType<typeof getFrameEffectLineFields>>)
+                                | ((current: ReturnType<typeof getFrameEffectLineFields>) => Partial<ReturnType<typeof getFrameEffectLineFields>>),
+                              options?: { recordHistory?: boolean }
                             ) => {
                               const targetFrameIds =
                                 selectedFrameIds.length > 1 ? selectedFrameIds : [selectedFrame.id];
 
-                              updateCurrentPage((page) => ({
+                              updateCurrentPage(
+                                (page) => ({
                                 ...page,
                                 frames: page.frames.map((frame) => {
                                   if (!targetFrameIds.includes(frame.id)) return frame;
@@ -24689,7 +24733,9 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                                       nextPatch.angle ?? current.angle,
                                   } as Frame;
                                 }),
-                              }));
+                              }),
+                                { recordHistory: options?.recordHistory ?? true }
+                              );
                             };
 
                             const selectedFrames =
@@ -24786,19 +24832,30 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                                           step={1}
                                           value={effectLine.innerBlank}
                                           disabled={disabled}
-                                          onPointerDown={(e) => e.currentTarget.focus({ preventScroll: true })}
+                                          onPointerDown={(e) => {
+                                            e.currentTarget.focus({ preventScroll: true });
+                                            const targetFrameIds =
+                                              selectedFrameIds.length > 1 ? selectedFrameIds : [selectedFrame.id];
+                                            beginFrameEffectLineSliderHistory(targetFrameIds);
+                                          }}
                                           onFocus={() => setFocusedWheelSliderId("mansaku-slider-frame-effect-line-blank")}
                                           onBlur={() =>
                                             setFocusedWheelSliderId((current) =>
                                               current === "mansaku-slider-frame-effect-line-blank" ? null : current
                                             )
                                           }
-                                          onChange={(e) =>
-                                            updateSelectedFrameEffectLine({
-                                              enabled: true,
-                                              innerBlank: Number(e.target.value),
-                                            })
-                                          }
+                                          onChange={(e) => {
+                                            updateSelectedFrameEffectLine(
+                                              {
+                                                enabled: true,
+                                                innerBlank: Number(e.target.value),
+                                              },
+                                              { recordHistory: false }
+                                            );
+                                            markFrameEffectLineSliderHistoryChanged();
+                                          }}
+                                          onPointerUp={() => commitFrameEffectLineSliderHistory()}
+                                          onPointerCancel={() => cancelFrameEffectLineSliderHistory()}
                                           onWheelCapture={(e) => {
                                             if (disabled || e.ctrlKey || e.metaKey) return;
                                             e.preventDefault();
@@ -24807,10 +24864,17 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                                             const direction = e.deltaY < 0 ? 1 : -1;
                                             const step = e.shiftKey ? 1 : 4;
 
-                                            updateSelectedFrameEffectLine((current) => ({
-                                              enabled: true,
-                                              innerBlank: clamp(current.innerBlank + direction * step, 0, 100),
-                                            }));
+                                            prepareSliderWheelHistory("frameEffectLine", selectedFrame.id);
+
+                                            updateSelectedFrameEffectLine(
+                                              (current) => ({
+                                                enabled: true,
+                                                innerBlank: clamp(current.innerBlank + direction * step, 0, 100),
+                                              }),
+                                              { recordHistory: false }
+                                            );
+
+                                            markSliderWheelHistoryChanged();
                                           }}
                                           style={{ ...sliderInputStyle, flex: 1 }}
                                         />
@@ -24834,18 +24898,30 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                                           step={1}
                                           value={Math.round(effectLine.density * 100)}
                                           disabled={disabled}
-                                          onPointerDown={(e) => e.currentTarget.focus({ preventScroll: true })}
+                                          onPointerDown={(e) => {
+                                            e.currentTarget.focus({ preventScroll: true });
+                                            const targetFrameIds =
+                                              selectedFrameIds.length > 1 ? selectedFrameIds : [selectedFrame.id];
+                                            beginFrameEffectLineSliderHistory(targetFrameIds);
+                                          }}
                                           onFocus={() => setFocusedWheelSliderId("mansaku-slider-frame-effect-line-density")}
                                           onBlur={() =>
                                             setFocusedWheelSliderId((current) =>
                                               current === "mansaku-slider-frame-effect-line-density" ? null : current
                                             )
                                           }
-                                          onChange={(e) =>
-                                            updateSelectedFrameEffectLine({
-                                              density: clamp(Number(e.target.value) / 100, 0, 1),
-                                            })
-                                          }
+                                          onChange={(e) => {
+                                            updateSelectedFrameEffectLine(
+                                              {
+                                                enabled: true,
+                                                density: clamp(Number(e.target.value) / 100, 0, 1),
+                                              },
+                                              { recordHistory: false }
+                                            );
+                                            markFrameEffectLineSliderHistoryChanged();
+                                          }}
+                                          onPointerUp={() => commitFrameEffectLineSliderHistory()}
+                                          onPointerCancel={() => cancelFrameEffectLineSliderHistory()}
                                           onWheelCapture={(e) => {
                                             if (disabled || e.ctrlKey || e.metaKey) return;
                                             e.preventDefault();
@@ -24854,10 +24930,17 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                                             const direction = e.deltaY < 0 ? 1 : -1;
                                             const step = e.shiftKey ? 1 : 4;
 
-                                            updateSelectedFrameEffectLine((current) => ({
-                                              enabled: true,
-                                              density: clamp(current.density + (direction * step) / 100, 0, 1),
-                                            }));
+                                            prepareSliderWheelHistory("frameEffectLine", selectedFrame.id);
+
+                                            updateSelectedFrameEffectLine(
+                                              (current) => ({
+                                                enabled: true,
+                                                density: clamp(current.density + (direction * step) / 100, 0, 1),
+                                              }),
+                                              { recordHistory: false }
+                                            );
+
+                                            markSliderWheelHistoryChanged();
                                           }}
                                           style={{ ...sliderInputStyle, flex: 1 }}
                                         />
