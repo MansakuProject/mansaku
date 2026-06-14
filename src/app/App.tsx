@@ -213,7 +213,7 @@ import {
   LayoutSvgIcon,
   FrameAddSvgIcon,
   BubbleAddSvgIcon,
-  SoundAddSvgIcon,
+  DrawnTextAddSvgIcon,
   LayerOrderSvgIcon,
   PageVisibleSvgIcon,
   BubbleTypeIcon,
@@ -14597,9 +14597,9 @@ function isValidMergeQuad(
     const newId = Date.now();
 
     updateCurrentPage((page) => {
-      const bubblePlaceholderText = t("bubbleTextPlaceholder");
+      const defaultBubbleText = t("bubbleDefaultText");
       const defaultBubbleSize = getBubbleAutoSizePercent({
-        text: bubblePlaceholderText,
+        text: defaultBubbleText,
         writingMode: defaultTextDirection,
         fontSize: 22,
       });
@@ -14641,7 +14641,7 @@ function isValidMergeQuad(
         y: nextY,
         w: bubbleW,
         h: bubbleH,
-        text: "",
+        text: defaultBubbleText,
         type: "ellipse",
         shape: "ellipse",
         fontSize: 22,
@@ -14712,13 +14712,14 @@ function isValidMergeQuad(
         }
       }
       
+      const defaultSoundText = t("soundDefaultText");
       const defaultSoundStyle = SOUND_STYLE_PRESETS[DEFAULT_SOUND_STYLE_KEY];
 
       const sound: SoundText = {
         id: newId,
         x: nextX,
         y: nextY,
-        text: "",
+        text: defaultSoundText,
         fontSize: 42,
         fontFamily: "",
         rotate: 0,
@@ -22858,7 +22859,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
 
               <ToolbarIconButton title={t("addSound")} onClick={handleAddSound}>
                 <span style={{ display: "inline-flex", gap: 0, transform: "scale(0.92)" }}>
-                  <SoundAddSvgIcon />
+                  <DrawnTextAddSvgIcon />
                 </span>
               </ToolbarIconButton>
 

@@ -418,6 +418,85 @@ export function SoundAddSvgIcon() {
   );
 }
 
+
+// ----------
+// 描き文字追加
+// ----------
+export function DrawnTextAddSvgIcon() {
+  return (
+    <svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24" aria-hidden="true">
+      {/* A */}
+      <text
+        x="1.2"
+        y="20"
+        fontSize="10"
+        fontWeight="900"
+        fontFamily="Arial, Helvetica, sans-serif"
+        fill="currentColor"
+      >
+        A
+      </text>
+
+      {/* 大きなペン */}
+      <g
+        transform="translate(19.5 0.5) rotate(45) scale(1.45)"
+        stroke="currentColor"
+        strokeWidth={ICON_STROKE}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {/* 軸 */}
+        <rect
+          x="-1.4"
+          y="-0.5"
+          width="2.8"
+          height="9.5"
+          rx="0.5"
+          fill="#d1d5db"
+        />
+
+        {/* 消しゴム */}
+        <rect
+          x="-1.4"
+          y="-2.2"
+          width="2.8"
+          height="1.7"
+          rx="0.5"
+          fill="#d1d5db"
+        />
+
+        {/* ペン先 */}
+        <path
+          d="M-1.4 9L0 11.5L1.4 9Z"
+          fill="#d1d5db"
+        />
+
+        {/* 芯 */}
+        <path d="M0 10.2V11" />
+      </g>
+
+      {/* ＋丸 */}
+      <circle
+        cx="17.5"
+        cy="17.5"
+        r="6.2"
+        fill="#111827"
+        stroke="#ffffff"
+        strokeWidth={ICON_STROKE}
+      />
+
+      {/* ＋ */}
+      <path
+        d="M13.7 17.5H21.3M17.5 13.7V21.3"
+        fill="none"
+        stroke="#ffffff"
+        strokeWidth={ICON_STROKE * 1.15}
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 // ----------
 // レイヤー順序（最前面／前面／背面／最背面）
 // ----------
