@@ -4954,9 +4954,24 @@ export default function App() {
     });
   }, [pages, undoStack, redoStack]);
 
+  function clearFloatingNoticeTimer() {
+    if (floatingNoticeTimerRef.current == null) return;
+
+    window.clearTimeout(floatingNoticeTimerRef.current);
+    floatingNoticeTimerRef.current = null;
+  }
+
+  function clearFloatingNoticeMouseMoveListener() {
+    if (!floatingNoticeMouseMoveCleanupRef.current) return;
+
+    floatingNoticeMouseMoveCleanupRef.current();
+    floatingNoticeMouseMoveCleanupRef.current = null;
+  }
+
   function showFloatingNotice(
     message: string,
-    anchorElement?: HTMLElement | null
+    anchorElement?: HTMLElement | null,
+    options: { hideOnMouseMove?: boolean } = {}
   ) {
     let left = 16;
     let top = 16;
@@ -4968,14 +4983,30 @@ export default function App() {
       top = rect.bottom + 6;
     }
 
+    clearFloatingNoticeTimer();
+    clearFloatingNoticeMouseMoveListener();
+
     setFloatingNotice({
       message,
       left,
       top,
     });
 
-    if (floatingNoticeTimerRef.current != null) {
-      window.clearTimeout(floatingNoticeTimerRef.current);
+    if (options.hideOnMouseMove) {
+      window.setTimeout(() => {
+        const handleMouseMove = () => {
+          clearFloatingNoticeMouseMoveListener();
+          setFloatingNotice(null);
+        };
+
+        window.addEventListener("mousemove", handleMouseMove, { once: true });
+
+        floatingNoticeMouseMoveCleanupRef.current = () => {
+          window.removeEventListener("mousemove", handleMouseMove);
+        };
+      }, 0);
+
+      return;
     }
 
     floatingNoticeTimerRef.current = window.setTimeout(() => {
@@ -5050,12 +5081,39 @@ export default function App() {
   }
 
   const loadLocalFonts = async (anchorElement: HTMLElement | null) => {
-    if (!window.queryLocalFonts) {
+    const resetLocalFontState = () => {
+      setLocalFontFamilies([]);
       setLocalFontsLoaded(false);
-      showFloatingNotice(
-        t("localFontsNotSupported"),
-        anchorElement
-      );
+      setPreviewFontFamily(null);
+    };
+
+    const getLocalFontsPermissionState = async () => {
+      if (!navigator.permissions?.query) return null;
+
+      try {
+        const status = await navigator.permissions.query({
+          name: "local-fonts" as PermissionName,
+        });
+
+        return status.state;
+      } catch {
+        return null;
+      }
+    };
+
+    if (!window.queryLocalFonts) {
+      resetLocalFontState();
+      showFloatingNotice(t("localFontsNotSupported"), anchorElement);
+      return;
+    }
+
+    const permissionState = await getLocalFontsPermissionState();
+
+    if (permissionState === "denied") {
+      resetLocalFontState();
+      showFloatingNotice(t("localFontsSiteSettingsRequired"), anchorElement, {
+        hideOnMouseMove: true,
+      });
       return;
     }
 
@@ -5070,21 +5128,40 @@ export default function App() {
         )
       ).sort((a, b) => a.localeCompare(b, language));
 
+      if (families.length === 0) {
+        resetLocalFontState();
+
+        const nextPermissionState = await getLocalFontsPermissionState();
+        showFloatingNotice(
+          t(
+            nextPermissionState === "denied"
+              ? "localFontsSiteSettingsRequired"
+              : "localFontsLoadFailed"
+          ),
+          anchorElement,
+          nextPermissionState === "denied" ? { hideOnMouseMove: true } : undefined
+        );
+        return;
+      }
+
       setLocalFontFamilies(families);
       setLocalFontsLoaded(true);
 
-      showFloatingNotice(
-        t("localFontsLoaded"),
-        anchorElement
-      );
+      showFloatingNotice(t("localFontsLoaded"), anchorElement);
     } catch (error) {
+      resetLocalFontState();
+
+      const nextPermissionState = await getLocalFontsPermissionState();
       showFloatingNotice(
         t(
-          isPermissionError(error)
-            ? "localFontsDenied"
+          nextPermissionState === "denied" || isPermissionError(error)
+            ? "localFontsSiteSettingsRequired"
             : "localFontsLoadFailed"
         ),
-        anchorElement
+        anchorElement,
+        nextPermissionState === "denied" || isPermissionError(error)
+          ? { hideOnMouseMove: true }
+          : undefined
       );
     }
   };
@@ -5118,9 +5195,8 @@ export default function App() {
 
   useEffect(() => {
     return () => {
-      if (floatingNoticeTimerRef.current != null) {
-        window.clearTimeout(floatingNoticeTimerRef.current);
-      }
+      clearFloatingNoticeTimer();
+      clearFloatingNoticeMouseMoveListener();
 
       if (historyNoticeTimerRef.current != null) {
         window.clearTimeout(historyNoticeTimerRef.current);
@@ -5171,6 +5247,7 @@ export default function App() {
     mode: "hover" | "shortcut" | "warning";
   } | null>(null);
   const floatingNoticeTimerRef = useRef<number | null>(null);
+  const floatingNoticeMouseMoveCleanupRef = useRef<(() => void) | null>(null);
   const historyNoticeTimerRef = useRef<number | null>(null);
   const saveButtonRef = useRef<HTMLButtonElement | null>(null);
   const undoHistoryButtonRef = useRef<HTMLDivElement | null>(null);
