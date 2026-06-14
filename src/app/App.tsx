@@ -5103,7 +5103,9 @@ export default function App() {
 
     if (!window.queryLocalFonts) {
       resetLocalFontState();
-      showFloatingNotice(t("localFontsNotSupported"), anchorElement);
+      showFloatingNotice(t("localFontsNotSupported"), anchorElement, {
+        hideOnMouseMove: true,
+      });
       return;
     }
 
@@ -5139,7 +5141,7 @@ export default function App() {
               : "localFontsLoadFailed"
           ),
           anchorElement,
-          nextPermissionState === "denied" ? { hideOnMouseMove: true } : undefined
+          { hideOnMouseMove: true }
         );
         return;
       }
@@ -5159,9 +5161,7 @@ export default function App() {
             : "localFontsLoadFailed"
         ),
         anchorElement,
-        nextPermissionState === "denied" || isPermissionError(error)
-          ? { hideOnMouseMove: true }
-          : undefined
+        { hideOnMouseMove: true }
       );
     }
   };
@@ -23013,7 +23013,11 @@ const handleResetBubbleStyle = (bubbleId: number) => {
             top: floatingNotice.top,
             maxWidth: `calc(100vw - ${Math.ceil(floatingNotice.left)}px - 8px)`,
             fontSize: 12,
-            color: "#16a34a",
+            color:
+              floatingNotice.message === t("localFontsLoadFailed") ||
+              floatingNotice.message === t("localFontsSiteSettingsRequired")
+                ? "#dc2626"
+                : "#16a34a",
             background: "#ffffff",
             border: "1px solid #d1d5db",
             borderRadius: 6,
