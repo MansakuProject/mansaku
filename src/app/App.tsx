@@ -4316,7 +4316,7 @@ export default function App() {
 
   const SLIDER_PERCENT_LABEL_WIDTH = 44;
   const SLIDER_CONTROL_GAP = 3.5;
-  const DEFAULT_SHARED_SLIDER_INPUT_WIDTH = 60;
+  const DEFAULT_SHARED_SLIDER_INPUT_WIDTH = 104;
   const DEFAULT_SHARED_PAGE_CARD_WIDTH = 131;
 
   const sliderInputStyle: React.CSSProperties = {
@@ -20808,7 +20808,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                             border: "2px solid #2563eb",
                             background: "#ffffff",
                             pointerEvents: "auto",
-                            cursor: "col-resize",
+                            cursor: "ew-resize",
                             boxSizing: "border-box",
                             left: curveXHandle.x,
                             top: curveXHandle.y,
