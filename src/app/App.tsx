@@ -4994,12 +4994,28 @@ export default function App() {
 
     if (options.hideOnMouseMove) {
       window.setTimeout(() => {
-        const handleMouseMove = () => {
+        let startX: number | null = null;
+        let startY: number | null = null;
+
+        const handleMouseMove = (event: MouseEvent) => {
+          if (startX == null || startY == null) {
+            startX = event.clientX;
+            startY = event.clientY;
+            return;
+          }
+
+          if (
+            Math.abs(event.clientX - startX) < 2 &&
+            Math.abs(event.clientY - startY) < 2
+          ) {
+            return;
+          }
+
           clearFloatingNoticeMouseMoveListener();
           setFloatingNotice(null);
         };
 
-        window.addEventListener("mousemove", handleMouseMove, { once: true });
+        window.addEventListener("mousemove", handleMouseMove);
 
         floatingNoticeMouseMoveCleanupRef.current = () => {
           window.removeEventListener("mousemove", handleMouseMove);
@@ -7152,7 +7168,6 @@ useLayoutEffect(() => {
         ...page,
         frames: page.frames.map((frame) => {
           if (frame.id !== frameId) return frame;
-          if (isProtectedCoverBaseFrame(page, frame)) return frame;
 
           const current = getFrameEffectLineFields(frame);
           const nextPatch =
@@ -11061,6 +11076,47 @@ useEffect(() => {
       });
     };
   }, [currentPage, trimmingFrameId]);
+
+  useEffect(() => {
+    if (
+      openEditorSectionKey !== "frame-effect-line" ||
+      selectedFrameIds.length !== 1
+    ) {
+      return;
+    }
+
+    const frameId = selectedFrameIds[0];
+
+    const handleFrameEffectLineWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) return;
+
+      const eventTarget = e.target as Element | null;
+      const hitTarget = document.elementFromPoint(e.clientX, e.clientY);
+      const frameElement =
+        eventTarget?.closest?.("[data-canvas-object-type='frame'][data-canvas-object-id]") ??
+        hitTarget?.closest?.("[data-canvas-object-type='frame'][data-canvas-object-id]");
+
+      if (!(frameElement instanceof HTMLElement)) return;
+      if (frameElement.dataset.canvasObjectId !== String(frameId)) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+
+      changeFrameEffectLineInnerBlankByWheel(frameId, e.deltaY, !e.shiftKey);
+    };
+
+    window.addEventListener("wheel", handleFrameEffectLineWheel, {
+      passive: false,
+      capture: true,
+    });
+
+    return () => {
+      window.removeEventListener("wheel", handleFrameEffectLineWheel, {
+        capture: true,
+      });
+    };
+  }, [openEditorSectionKey, selectedFrameIds, currentPage]);
 
   const startFrameMove = (
     e: MouseEvent | React.MouseEvent<HTMLDivElement>,
@@ -24785,7 +24841,6 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                                 ...page,
                                 frames: page.frames.map((frame) => {
                                   if (!targetFrameIds.includes(frame.id)) return frame;
-                                  if (isProtectedCoverBaseFrame(page, frame)) return frame;
 
                                   const current = getFrameEffectLineFields(frame);
                                   const nextPatch =
@@ -24825,11 +24880,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                                 selectedFrameIds.includes(frame.id)
                               ) ?? [];
 
-                            const disabled =
-                              selectedFrames.length > 0 &&
-                              selectedFrames.every((frame) =>
-                                currentPage ? isProtectedCoverBaseFrame(currentPage, frame) : false
-                              );
+                            const disabled = selectedFrames.length === 0;
 
                             const getFrameEffectLineKindIcon = (
                               kind: "none" | FrameEffectLineKind
