@@ -1,74 +1,65 @@
-# React + TypeScript + Vite
+# Mansaku
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+![Mansaku](https://mansaku.pages.dev/images/lp/hero.png)
 
-Currently, two official plugins are available:
+ブラウザで使える漫画ページ作成ツール
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Mansakuは、好きな画像をコマに配置し、吹き出しや描き文字、効果線を追加して漫画ページを作成できる無料のWebアプリです。
 
-## React Compiler
+Mansaku is a free browser-based manga page creation tool that allows users to place images into panels and add speech bubbles, drawn text, and effect lines.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Website
 
-## Expanding the ESLint configuration
+https://mansaku.pages.dev/
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Features
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- Place images into manga panels
+- Add speech bubbles and dialogue
+- Add drawn text (onomatopoeia and sound effects)
+- Add focus lines and speed lines
+- Multiple page support
+- Export as PNG
+- Export as PDF
+- Works entirely in a web browser
+- No installation required
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Use Cases
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- Web manga creation
+- Turning novel scenes into manga pages
+- Character dialogue comics
+- Manga page prototyping
+- Social media comic posts
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Screenshots
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Main Screen
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-deploy test
+![Mansaku](https://mansaku.pages.dev/images/lp/hero.png)
+
+### Template Selection
+
+![Template](https://mansaku.pages.dev/images/lp/template.png)
+
+### Speech Bubbles
+
+![Speech Bubble](https://mansaku.pages.dev/images/lp/edit_bubble.png)
+
+### Panel Editing
+
+![Panel](https://mansaku.pages.dev/images/lp/edit_frame.png)
+
+### Export
+
+![Export](https://mansaku.pages.dev/images/lp/export.png)
+
+## Technology
+
+- React
+- TypeScript
+- Vite
+
+## License
+
+Copyright (c) Mansaku Project
