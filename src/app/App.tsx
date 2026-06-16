@@ -2473,7 +2473,14 @@ function isFixedSoundTextColorPreset(sound: SoundText) {
 }
 
 function isSoundFreeTextColorMode(sound: SoundText) {
-  return !isFixedSoundTextColorPreset(sound);
+  const fields = getFreeTextColorFields(sound);
+
+  return (
+    fields.freeTextColor != null ||
+    fields.freeTextOutlineEnabled != null ||
+    fields.freeTextOutlineColor != null ||
+    !isFixedSoundTextColorPreset(sound)
+  );
 }
 
 function buildSoundWithFreeTextColor(
@@ -2481,15 +2488,20 @@ function buildSoundWithFreeTextColor(
   patch: Partial<FreeTextColorFields> = {}
 ): SoundText {
   const fields = getFreeTextColorFields(sound);
-  const fillColor = patch.freeTextColor ?? fields.freeTextColor ?? sound.color ?? DEFAULT_FREE_TEXT_COLOR;
-  const outlineEnabled = patch.freeTextOutlineEnabled ?? fields.freeTextOutlineEnabled ?? false;
-  const outlineColor = patch.freeTextOutlineColor ?? fields.freeTextOutlineColor ?? DEFAULT_FREE_TEXT_OUTLINE_COLOR;
+  const fillColor =
+    patch.freeTextColor ?? fields.freeTextColor ?? DEFAULT_FREE_TEXT_COLOR;
+  const outlineEnabled =
+    patch.freeTextOutlineEnabled ?? fields.freeTextOutlineEnabled ?? false;
+  const outlineColor =
+    patch.freeTextOutlineColor ??
+    fields.freeTextOutlineColor ??
+    DEFAULT_FREE_TEXT_OUTLINE_COLOR;
 
   return {
     ...sound,
     color: fillColor,
     outlineColor: outlineEnabled ? outlineColor : "transparent",
-    outlineWidth: outlineEnabled ? Math.max(sound.outlineWidth || 4, 4) : 0,
+    outlineWidth: outlineEnabled ? 2 : 0,
     freeTextColor: fillColor,
     freeTextOutlineEnabled: outlineEnabled,
     freeTextOutlineColor: outlineColor,
@@ -24420,6 +24432,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                                   : { iconType: "whiteWithBlackOutline", label: t("whiteTextBlackStroke") };
 
                                 const isActive =
+                                  !isSoundFreeTextColorMode(selectedSound) &&
                                   selectedSound.color === preset.color &&
                                   selectedSound.outlineColor === preset.outlineColor &&
                                   selectedSound.outlineWidth === preset.outlineWidth;
@@ -24437,9 +24450,6 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                                         color: preset.color,
                                         outlineColor: preset.outlineColor,
                                         outlineWidth: preset.outlineWidth,
-                                        freeTextColor: undefined,
-                                        freeTextOutlineEnabled: undefined,
-                                        freeTextOutlineColor: undefined,
                                       } as SoundText));
                                     }}
                                     style={{
