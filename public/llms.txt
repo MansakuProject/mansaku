@@ -1,0 +1,28 @@
+# Mansaku
+
+> Browser-based manga page creation tool
+
+Mansaku is a free web application for creating manga pages directly in a browser.
+
+## Features
+
+- Place your own images into manga panels
+- Add speech bubbles and dialogue
+- Add drawn text and sound effects
+- Add focus lines and speed lines
+- Create multi-page manga projects
+- Export as PNG or PDF
+- No installation required
+- Works entirely in a web browser
+
+## Website
+
+https://mansaku.pages.dev/
+
+## Use Cases
+
+- Web manga creation
+- Visual novel scene layouts
+- Storyboarding
+- Comic page mockups
+- Manga prototyping
