@@ -11420,6 +11420,67 @@ useEffect(() => {
     focusCanvasTrap();
   };
 
+  const resetFrameEditorControls = (frameId: number) => {
+    if (frameId === INNER_LOCKED_FRAME_ID) return;
+
+    const targetFrameIds = (
+      selectedFrameIds.length > 1 && selectedFrameIds.includes(frameId)
+        ? selectedFrameIds
+        : [frameId]
+    ).filter((id) => id !== INNER_LOCKED_FRAME_ID);
+
+    if (targetFrameIds.length === 0) return;
+
+    applyPagesChange(
+      (prev) =>
+        prev.map((page) => {
+          if (page.id !== currentPageId) return page;
+
+          return {
+            ...page,
+            frames: page.frames.map((f) => {
+              if (!targetFrameIds.includes(f.id)) return f;
+
+              const isProtected = isProtectedCoverBaseFrame(page, f);
+              const hasImageSource = getFrameImageSrc(f) != null;
+
+              return {
+                ...f,
+                imageScale: hasImageSource ? 1 : f.imageScale,
+                imageOffsetX: hasImageSource ? 0 : f.imageOffsetX,
+                imageOffsetY: hasImageSource ? 0 : f.imageOffsetY,
+                topTilt: 0,
+                rightTilt: 0,
+                bottomTilt: 0,
+                leftTilt: 0,
+                borderEnabled: isProtected ? f.borderEnabled : true,
+                frameBorderVisible: isProtected
+                  ? (f as FrameBorderVisibleState).frameBorderVisible
+                  : true,
+                effectLineEnabled: false,
+                effectLineKind: FRAME_EFFECT_LINE_DEFAULTS.kind,
+                effectLineColorMode: FRAME_EFFECT_LINE_DEFAULTS.colorMode,
+                effectLineCustomColor: FRAME_EFFECT_LINE_DEFAULTS.customColor,
+                effectLineStrokeWidth: FRAME_EFFECT_LINE_DEFAULTS.strokeWidth,
+                effectLineDensity: FRAME_EFFECT_LINE_DEFAULTS.density,
+                effectLineInnerBlank: FRAME_EFFECT_LINE_DEFAULTS.innerBlank,
+                effectLineCenterX: FRAME_EFFECT_LINE_DEFAULTS.centerX,
+                effectLineCenterY: FRAME_EFFECT_LINE_DEFAULTS.centerY,
+                effectLineAngle: FRAME_EFFECT_LINE_DEFAULTS.angle,
+              } as Frame;
+            }),
+          };
+        }),
+      { recordHistory: true }
+    );
+
+    setOpenEditorSectionKey(null);
+    setSelectedFrameImageCardId(null);
+    setTrimmingFrameId(null);
+    setSuppressFrameSelectionOutlineByBorderSwitch(false);
+    focusCanvasTrap();
+  };
+
   const removeFrameImage = (frameId: number) => {
     updateCurrentPage((page) => ({
       ...page,
@@ -15572,23 +15633,31 @@ const handleResetBubbleStyle = (bubbleId: number) => {
   const handleResetSoundStyle = (soundId: number) => {
     const defaultSoundStyle = SOUND_STYLE_PRESETS[DEFAULT_SOUND_STYLE_KEY];
 
-    updateSound(soundId, (s) => ({
-      ...s,
-      fontSize: 42,
-      fontFamily: "",
-      rotate: 0,
-      writingMode: defaultTextDirection,
-      color: defaultSoundStyle.color,
-      outlineColor: defaultSoundStyle.outlineColor,
-      outlineWidth: defaultSoundStyle.outlineWidth,
-      topTilt: 0,
-      rightTilt: 0,
-      bottomTilt: 0,
-      leftTilt: 0,
-      curveX: 0,
-      curveY: 0,
-      clipToFrame: false,
-    }));
+    updateSound(soundId, (s) => {
+      const next = {
+        ...s,
+        fontSize: 42,
+        fontFamily: "",
+        rotate: 0,
+        writingMode: defaultTextDirection,
+        color: defaultSoundStyle.color,
+        outlineColor: defaultSoundStyle.outlineColor,
+        outlineWidth: defaultSoundStyle.outlineWidth,
+        topTilt: 0,
+        rightTilt: 0,
+        bottomTilt: 0,
+        leftTilt: 0,
+        curveX: 0,
+        curveY: 0,
+        clipToFrame: false,
+      } as SoundText & FreeTextColorFields;
+
+      delete next.freeTextColor;
+      delete next.freeTextOutlineEnabled;
+      delete next.freeTextOutlineColor;
+
+      return next as SoundText;
+    });
   };
 
   const applySoundStylePreset = (
@@ -24538,7 +24607,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                             title={t("reset")}
                             dataFocusRole="editor-reset"
                             onClick={() => {
-                              resetFrameImage(selectedFrame.id);
+                              resetFrameEditorControls(selectedFrame.id);
                             }}
                           >
                             <ResetSvgIcon />
