@@ -380,6 +380,7 @@ export function HelpModal({ onClose, language }: HelpModalProps) {
             <li>{t("help.tips.image")}</li>
             <li>{t("help.tips.text")}</li>
             <li>{t("help.tips.fit")}</li>
+            <li>{t("help.tips.highResolution")}</li>
             <li>{t("help.tips.fontDisplay")}</li>
           </ul>
         </HelpCard>

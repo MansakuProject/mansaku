@@ -148,6 +148,7 @@ export const helpMessages = {
     "help.tips.image": "To adjust an image position or scale, select the image card.",
     "help.tips.text": "For speech bubble and drawn text text settings, select the item and adjust them in the editor panel on the left.",
     "help.tips.fit": "When the page is hard to see, use the magnifier button to fit the page to the screen.",
+    "help.tips.highResolution": "For printed materials, use High Resolution PNG or High Resolution PDF export. Low-resolution source images will not become sharper.",
     "help.tips.fontDisplay": "If fonts do not display correctly, close all browser windows and open the app again.",
 
     "help.environment.title": "Recommended Environment",
@@ -333,6 +334,7 @@ export const helpMessages = {
     "help.tips.image": "画像の位置調整や倍率変更は、画像カードを選択して行います。",
     "help.tips.text": "吹き出しや描き文字の文字まわりは、選択後に左側の編集パネルでまとめて調整できます。",
     "help.tips.fit": "画面が見づらいときは、虫眼鏡ボタンで用紙を画面にフィットできます。",
+    "help.tips.highResolution": "印刷用データを作成する場合は、高解像度PNGまたは高解像度PDF出力を使用してください。元画像の解像度が低い場合、画質は向上しません。",
     "help.tips.fontDisplay": "フォントがうまく表示されないときは、ブラウザのすべての画面を閉じてから開き直してください。",
 
     "help.environment.title": "推奨環境",
@@ -514,6 +516,7 @@ export const helpMessages = {
     "help.tips.image": "이미지의 위치 조정이나 배율 변경은 이미지 카드를 선택해서 합니다.",
     "help.tips.text": "말풍선이나 그림문자의 문자 설정은 선택 후 왼쪽 편집 패널에서 한꺼번에 조정할 수 있습니다.",
     "help.tips.fit": "화면이 보기 어려울 때는 돋보기 버튼으로 용지를 화면에 맞출 수 있습니다.",
+    "help.tips.highResolution": "인쇄용 데이터를 만들 때는 고해상도 PNG 또는 고해상도 PDF 출력을 사용하세요. 원본 이미지 해상도가 낮으면 화질은 향상되지 않습니다.",
     "help.tips.fontDisplay": "글꼴이 제대로 표시되지 않으면 브라우저의 모든 창을 닫은 뒤 앱을 다시 여세요.",
 
     "help.environment.title": "권장 환경",
@@ -695,6 +698,7 @@ export const helpMessages = {
     "help.tips.image": "调整图片位置或倍率时，请选择图片卡片。",
     "help.tips.text": "对白气泡和手绘文字的文字设置，可在选择后通过左侧编辑面板统一调整。",
     "help.tips.fit": "页面难以查看时，可用放大镜按钮让纸张适合屏幕。",
+    "help.tips.highResolution": "制作印刷用数据时，请使用高分辨率 PNG 或高分辨率 PDF 导出。如果原始图片分辨率较低，画质不会提高。",
     "help.tips.fontDisplay": "如果字体显示不正确，请关闭所有浏览器窗口，然后重新打开应用。",
 
     "help.environment.title": "推荐环境",
@@ -876,6 +880,7 @@ export const helpMessages = {
     "help.tips.image": "Pour ajuster la position ou le zoom d’une image, sélectionnez la carte d’image.",
     "help.tips.text": "Pour les réglages de texte des bulles et lettrage dessiné, sélectionnez l’élément puis ajustez-les dans le panneau de gauche.",
     "help.tips.fit": "Si la page est difficile à voir, utilisez la loupe pour l’ajuster à l’écran.",
+    "help.tips.highResolution": "Pour l’impression, utilisez l’export PNG haute résolution ou PDF haute résolution. Une image source de faible résolution ne deviendra pas plus nette.",
     "help.tips.fontDisplay": "Si les polices ne s’affichent pas correctement, fermez toutes les fenêtres du navigateur puis rouvrez l’application.",
 
     "help.environment.title": "Environnement recommandé",
@@ -1057,6 +1062,7 @@ export const helpMessages = {
     "help.tips.image": "Чтобы настроить положение или масштаб изображения, выберите карточку изображения.",
     "help.tips.text": "Настройки текста для облачков и рисованного текста можно менять в левой панели после выбора объекта.",
     "help.tips.fit": "Если страницу плохо видно, используйте кнопку лупы, чтобы подогнать лист под экран.",
+    "help.tips.highResolution": "Utilice la exportación PNG de alta resolución o PDF de alta resolución para impresión. Las imágenes originales de baja resolución no mejorarán su calidad.",
     "help.tips.fontDisplay": "Если шрифты отображаются неправильно, закройте все окна браузера и откройте приложение заново.",
 
     "help.environment.title": "Рекомендуемая среда",
@@ -1238,6 +1244,7 @@ export const helpMessages = {
     "help.tips.image": "Para ajustar la posición o escala de una imagen, selecciona la tarjeta de imagen.",
     "help.tips.text": "Los ajustes de texto de bocadillos y texto dibujado se pueden ajustar juntos en el panel izquierdo tras seleccionar el elemento.",
     "help.tips.fit": "Si la página es difícil de ver, usa la lupa para ajustarla a la pantalla.",
+    "help.tips.highResolution": "Verwenden Sie für Druckmaterialien den Export als hochauflösendes PNG oder PDF. Bilder mit niedriger Ausgangsauflösung werden dadurch nicht schärfer.",
     "help.tips.fontDisplay": "Si las fuentes no se muestran correctamente, cierra todas las ventanas del navegador y vuelve a abrir la aplicación.",
 
     "help.environment.title": "Empfohlene Umgebung",
@@ -1419,6 +1426,7 @@ export const helpMessages = {
     "help.tips.image": "Zum Anpassen von Bildposition oder Skalierung wähle die Bildkarte aus.",
     "help.tips.text": "Textbezogene Einstellungen für Sprechblasen und gezeichneten Text kannst du nach Auswahl im linken Bearbeitungspanel gesammelt anpassen.",
     "help.tips.fit": "Wenn die Seite schwer zu sehen ist, nutze die Lupen-Schaltfläche, um das Papier an den Bildschirm anzupassen.",
+    "help.tips.highResolution": "Per la stampa, utilizzare l’esportazione PNG ad alta risoluzione o PDF ad alta risoluzione. Le immagini originali a bassa risoluzione non diventeranno più nitide.",
     "help.tips.fontDisplay": "Wenn Schriftarten nicht richtig angezeigt werden, schließe alle Browserfenster und öffne die App erneut.",
 
     "help.terms.title": "Termini di utilizzo",

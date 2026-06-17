@@ -264,6 +264,9 @@ import {
   isPaletteColorSelected,
 } from "./ColorPalette";
 
+const STANDARD_EXPORT_PIXEL_RATIO = 2;
+const HIGH_RESOLUTION_EXPORT_PIXEL_RATIO = 4;
+
 function PageCardThumbnail({
   page,
   renderPageCanvas,
@@ -21645,7 +21648,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
     return sanitized.length > 0 ? sanitized : "manga-pages";
   };
 
-  const handleExportPdf = async () => {
+  const handleExportPdf = async (pixelRatio = STANDARD_EXPORT_PIXEL_RATIO) => {
     console.log("PDF export start");
 
     if (isExportingPdf || isExportingPng) {
@@ -21664,7 +21667,8 @@ const handleResetBubbleStyle = (bubbleId: number) => {
       return;
     }
 
-    const fileName = `${getExportBaseName()}.pdf`;
+    const isHighResolutionExport = pixelRatio > STANDARD_EXPORT_PIXEL_RATIO;
+    const fileName = `${getExportBaseName()}${isHighResolutionExport ? "_high" : ""}.pdf`;
     let fileHandle: FileSystemFileHandle | null = null;
 
     if (canUseFileSystemPicker) {
@@ -21749,7 +21753,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
 
         try {
           dataUrl = await htmlToImage.toPng(el, {
-            pixelRatio: 2,
+            pixelRatio,
             cacheBust: true,
           });
 
@@ -21852,7 +21856,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
     URL.revokeObjectURL(url);
   };
 
-  const handleExportPng = async () => {
+  const handleExportPng = async (pixelRatio = STANDARD_EXPORT_PIXEL_RATIO) => {
     if (isExportingPdf || isExportingPng) return;
     if (pages.length === 0) return;
 
@@ -21862,7 +21866,8 @@ const handleResetBubbleStyle = (bubbleId: number) => {
       return;
     }
 
-    const baseName = getExportBaseName();
+    const isHighResolutionExport = pixelRatio > STANDARD_EXPORT_PIXEL_RATIO;
+    const baseName = `${getExportBaseName()}${isHighResolutionExport ? "_high" : ""}`;
     const isSingle = exportPages.length === 1;
 
     let fileHandle: FileSystemFileHandle | null = null;
@@ -21932,7 +21937,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
 
         try {
           dataUrl = await htmlToImage.toPng(el, {
-            pixelRatio: 2,
+            pixelRatio,
             cacheBust: true,
           });
         } catch (error) {
@@ -22509,7 +22514,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                       {canExport && (
                         <ContextSubmenu
                           visible={stickySubmenuKey === "main-export"}
-                          minWidth={130}
+                          minWidth={190}
                         >
                         <ContextMenuButton
                           onMouseDown={(e) => {
@@ -22541,11 +22546,49 @@ const handleResetBubbleStyle = (bubbleId: number) => {
 
                             setIsMenuOpen(false);
                             setStickySubmenuKey(null);
+                            void handleExportPng(HIGH_RESOLUTION_EXPORT_PIXEL_RATIO);
+                          }}
+                        >
+                          <MenuItemWithIcon icon={<PngFileSvgIcon />}>
+                            {`${t("png")} (${t("highResolution")})`}
+                          </MenuItemWithIcon>
+                        </ContextMenuButton>
+
+                        <ContextMenuButton
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            setIsMenuOpen(false);
+                            setStickySubmenuKey(null);
                             void handleExportPdf();
                           }}
                         >
                           <MenuItemWithIcon icon={<PdfFileSvgIcon />}>
                             {t("pdf")}
+                          </MenuItemWithIcon>
+                        </ContextMenuButton>
+
+                        <ContextMenuButton
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            setIsMenuOpen(false);
+                            setStickySubmenuKey(null);
+                            void handleExportPdf(HIGH_RESOLUTION_EXPORT_PIXEL_RATIO);
+                          }}
+                        >
+                          <MenuItemWithIcon icon={<PdfFileSvgIcon />}>
+                            {`${t("pdf")} (${t("highResolution")})`}
                           </MenuItemWithIcon>
                         </ContextMenuButton>
                         </ContextSubmenu>
