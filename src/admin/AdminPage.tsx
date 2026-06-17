@@ -1016,10 +1016,6 @@ export function AdminPage() {
               レビューと問い合わせを管理します。
             </p>
           </div>
-
-          <a href={isTestMode ? "/?test=1" : "/"} style={linkStyle}>
-            LPへ戻る
-          </a>
         </header>
 
         {(message || error) && (

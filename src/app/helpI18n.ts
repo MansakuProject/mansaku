@@ -129,6 +129,7 @@ export const helpMessages = {
     "help.export.pdf": "Use PDF Export to export multiple pages as a PDF.",
     "help.export.exclude": "Pages excluded from export are omitted from PNG/PDF export.",
     "help.export.unsavedWarning": "If you reload or close the tab with unsaved changes, a warning is shown.",
+    "help.export.webSize": "PNG and PDF files are exported using a fixed page size. They are optimized for web viewing.",
 
     "help.shortcuts.title": "Shortcuts",
     "help.shortcuts.save": "Save",
@@ -313,6 +314,7 @@ export const helpMessages = {
     "help.export.pdf": "PDF出力で複数ページをPDFとして書き出せます。",
     "help.export.exclude": "出力対象外にしたページはPNG/PDF出力から外れます。",
     "help.export.unsavedWarning": "未保存の変更がある状態でリロードやタブを閉じようとすると警告が出ます。",
+    "help.export.webSize": "PNGおよびPDFは固定ページサイズで出力されます。Web閲覧向けに最適化されています。",
 
     "help.shortcuts.title": "ショートカット",
     "help.shortcuts.save": "保存",
@@ -493,6 +495,7 @@ export const helpMessages = {
     "help.export.pdf": "PDF 출력으로 여러 페이지를 PDF로 내보낼 수 있습니다.",
     "help.export.exclude": "출력 제외로 설정한 페이지는 PNG/PDF 출력에서 제외됩니다.",
     "help.export.unsavedWarning": "저장하지 않은 변경 사항이 있는 상태에서 새로고침하거나 탭을 닫으려 하면 경고가 표시됩니다.",
+    "help.export.webSize": "PNG 및 PDF는 고정된 페이지 크기로 출력됩니다. 웹 열람에 최적화되어 있습니다.",
 
     "help.shortcuts.title": "단축키",
     "help.shortcuts.save": "저장",
@@ -673,6 +676,7 @@ export const helpMessages = {
     "help.export.pdf": "使用 PDF 输出可将多页导出为 PDF。",
     "help.export.exclude": "设为排除输出的页面不会包含在 PNG/PDF 输出中。",
     "help.export.unsavedWarning": "有未保存的更改时刷新或关闭标签页会显示警告。",
+    "help.export.webSize": "PNG 和 PDF 使用固定页面尺寸导出，并针对网页阅读进行了优化。",
 
     "help.shortcuts.title": "快捷键",
     "help.shortcuts.save": "保存",
@@ -853,6 +857,7 @@ export const helpMessages = {
     "help.export.pdf": "L’export PDF permet d’exporter plusieurs pages en PDF.",
     "help.export.exclude": "Les pages exclues de l’exportation sont omises des exports PNG/PDF.",
     "help.export.unsavedWarning": "Si vous rechargez ou fermez l’onglet avec des modifications non enregistrées, un avertissement s’affiche.",
+    "help.export.webSize": "Mansaku est optimisé pour la consultation sur le web. Les fichiers PNG et PDF exportés utilisent une taille de page fixe conçue pour les bandes dessinées en ligne et la lecture numérique. Les formats de page destinés à l’impression ne sont actuellement pas pris en charge.",
 
     "help.shortcuts.title": "Raccourcis",
     "help.shortcuts.save": "Enregistrer",
@@ -1033,6 +1038,7 @@ export const helpMessages = {
     "help.export.pdf": "Экспорт PDF выводит несколько страниц в PDF.",
     "help.export.exclude": "Страницы, исключённые из экспорта, не попадают в PNG/PDF.",
     "help.export.unsavedWarning": "При перезагрузке или закрытии вкладки с несохранёнными изменениями появится предупреждение.",
+    "help.export.webSize": "Mansaku оптимизирован для просмотра в интернете. Экспортируемые файлы PNG и PDF используют фиксированный размер страницы, предназначенный для веб-комиксов и цифрового просмотра. Размеры страниц для печати сейчас не поддерживаются.",
 
     "help.shortcuts.title": "Горячие клавиши",
     "help.shortcuts.save": "Сохранить",
@@ -1213,6 +1219,7 @@ export const helpMessages = {
     "help.export.pdf": "Exportar PDF permite exportar varias páginas como PDF.",
     "help.export.exclude": "Las páginas excluidas de la exportación se omiten en la exportación PNG/PDF.",
     "help.export.unsavedWarning": "Si recargas o cierras la pestaña con cambios sin guardar, se mostrará una advertencia.",
+    "help.export.webSize": "Mansaku está optimizado para la visualización en la web. Los archivos PNG y PDF se exportan con un tamaño de página fijo. Están optimizados para la visualización en la web.",
 
     "help.shortcuts.title": "Atajos",
     "help.shortcuts.save": "Guardar",
@@ -1393,6 +1400,7 @@ export const helpMessages = {
     "help.export.pdf": "Mit PDF-Export gibst du mehrere Seiten als PDF aus.",
     "help.export.exclude": "Vom Export ausgeschlossene Seiten werden beim PNG/PDF-Export ausgelassen.",
     "help.export.unsavedWarning": "Wenn du mit ungespeicherten Änderungen neu lädst oder den Tab schließt, erscheint eine Warnung.",
+    "help.export.webSize": "Mansaku ist für die Anzeige im Web optimiert. PNG- und PDF-Dateien werden mit einer festen Seitengröße exportiert. Sie sind für die Anzeige im Web optimiert.",
 
     "help.shortcuts.title": "Tastenkürzel",
     "help.shortcuts.save": "Speichern",

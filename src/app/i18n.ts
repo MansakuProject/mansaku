@@ -197,6 +197,7 @@ export const messages = {
     unsupportedImageFormat: "This image format is not supported. Use PNG, JPG, WebP, or GIF.",
     resetSettings: "Reset Settings",
     confirmResetSettings: "Reset saved settings?",
+        helpExportWebSize: "Mansaku is optimized for web viewing. Exported PNG and PDF files use a fixed page size intended for web comics and digital viewing. Print-specific page sizes are not currently supported.",
     confirmDiscardUnsavedChanges: "There are unsaved changes. Discard them and continue?",
   },
 
@@ -416,6 +417,7 @@ export const messages = {
     unsupportedImageFormat: "この画像形式には対応していません。PNG / JPG / WebP / GIF の画像を使用してください。",
     resetSettings: "設定をリセット",
     confirmResetSettings: "保存された設定をリセットしますか？",
+        helpExportWebSize: "MansakuはWeb閲覧向けに最適化されています。PNGおよびPDFはWeb漫画やデジタル閲覧向けの固定ページサイズで出力されます。印刷用のページサイズには現在対応していません。",
     confirmDiscardUnsavedChanges: "保存されていない変更があります。破棄して続行しますか？",
   },
 
@@ -617,6 +619,7 @@ export const messages = {
     unsupportedImageFormat: "지원하지 않는 이미지 형식입니다. PNG, JPG, WebP 또는 GIF 이미지를 사용하세요.",
     resetSettings: "설정 초기화",
     confirmResetSettings: "저장된 설정을 초기화할까요?",
+        helpExportWebSize: "Mansaku는 웹 열람용으로 최적화되어 있습니다. PNG 및 PDF는 웹 만화와 디지털 열람을 위한 고정 페이지 크기로 출력됩니다. 인쇄용 페이지 크기는 현재 지원하지 않습니다.",
     confirmDiscardUnsavedChanges: "저장되지 않은 변경 사항이 있습니다. 버리고 계속할까요?",
   },
 
@@ -818,6 +821,7 @@ export const messages = {
     unsupportedImageFormat: "不支持此图像格式。请使用 PNG、JPG、WebP 或 GIF 图像。",
     resetSettings: "重置设置",
     confirmResetSettings: "要重置已保存的设置吗？",
+        helpExportWebSize: "Mansaku 针对网页阅读进行了优化。导出的 PNG 和 PDF 使用适合网络漫画和数字阅读的固定页面尺寸。目前不支持印刷专用页面尺寸。",
     confirmDiscardUnsavedChanges: "有尚未保存的更改。要放弃并继续吗？",
   },
 
@@ -1019,6 +1023,7 @@ export const messages = {
     unsupportedImageFormat: "Ce format d’image n’est pas pris en charge. Utilisez une image PNG, JPG, WebP ou GIF.",
     resetSettings: "Réinitialiser les paramètres",
     confirmResetSettings: "Réinitialiser les paramètres enregistrés ?",
+        helpExportWebSize: "Mansaku est optimisé pour la consultation sur le web. Les fichiers PNG et PDF exportés utilisent une taille de page fixe conçue pour les bandes dessinées en ligne et la lecture numérique. Les formats de page destinés à l'impression ne sont actuellement pas pris en charge.",
     confirmDiscardUnsavedChanges: "Des modifications ne sont pas enregistrées. Les abandonner et continuer ?",
   },
 
@@ -1220,6 +1225,7 @@ export const messages = {
     unsupportedImageFormat: "Этот формат изображения не поддерживается. Используйте PNG, JPG, WebP или GIF.",
     resetSettings: "Сбросить настройки",
     confirmResetSettings: "Сбросить сохранённые настройки?",
+        helpExportWebSize: "Mansaku está optimizado para la visualización en la web. Los archivos PNG y PDF exportados utilizan un tamaño de página fijo pensado para cómics web y lectura digital. Actualmente no se admiten tamaños de página específicos para impresión.",
     confirmDiscardUnsavedChanges: "Есть несохранённые изменения. Отменить их и продолжить?",
   },
 
@@ -1421,6 +1427,7 @@ export const messages = {
     unsupportedImageFormat: "Este formato de imagen no es compatible. Usa una imagen PNG, JPG, WebP o GIF.",
     resetSettings: "Restablecer ajustes",
     confirmResetSettings: "¿Restablecer los ajustes guardados?",
+        helpExportWebSize: "Mansaku ist für die Anzeige im Web optimiert. Exportierte PNG- und PDF-Dateien verwenden eine feste Seitengröße für Webcomics und digitale Darstellung. Druckspezifische Seitengrößen werden derzeit nicht unterstützt.",
     confirmDiscardUnsavedChanges: "Hay cambios sin guardar. ¿Descartarlos y continuar?",
   },
 
@@ -1622,6 +1629,7 @@ export const messages = {
     unsupportedImageFormat: "Dieses Bildformat wird nicht unterstützt. Verwende PNG, JPG, WebP oder GIF.",
     resetSettings: "Einstellungen zurücksetzen",
     confirmResetSettings: "Gespeicherte Einstellungen zurücksetzen?",
+        helpExportWebSize: "Mansaku è ottimizzato per la visualizzazione sul web. I file PNG e PDF esportati utilizzano una dimensione pagina fissa pensata per fumetti online e lettura digitale. I formati di pagina specifici per la stampa non sono attualmente supportati.",
     confirmDiscardUnsavedChanges: "Es gibt ungespeicherte Änderungen. Verwerfen und fortfahren?",
   },
 } as const;

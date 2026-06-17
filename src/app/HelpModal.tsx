@@ -297,6 +297,7 @@ export function HelpModal({ onClose, language }: HelpModalProps) {
             <li>{t("help.export.pdf")}</li>
             <li>{t("help.export.exclude")}</li>
             <li>{t("help.export.unsavedWarning")}</li>
+            <li>{t("help.export.webSize")}</li>
           </ul>
         </HelpCard>
       ),
