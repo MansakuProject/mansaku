@@ -3,7 +3,7 @@ import type { CSSProperties, ReactNode } from "react";
 import type { AppLanguage } from "./i18n";
 import { createHelpTranslator } from "./helpI18n";
 import { CloseSvgIcon } from "./svgIcons";
-import { APP_VERSION } from "../version";
+import { APP_NAME, APP_VERSION } from "../appInfo";
 
 type HelpModalProps = {
   onClose: () => void;
@@ -411,6 +411,7 @@ export function HelpModal({ onClose, language }: HelpModalProps) {
             <li>{t("help.terms.acceptance")}</li>
             <li>{t("help.terms.prohibited")}</li>
             <li>{t("help.terms.contentRights")}</li>
+            <li style={{ whiteSpace: "pre-line" }}>{t("help.terms.credit")}</li>
             <li>{t("help.terms.changes")}</li>
           </ul>
         </HelpCard>
@@ -466,7 +467,7 @@ export function HelpModal({ onClose, language }: HelpModalProps) {
               lineHeight: 1.7,
             }}
           >
-            <div>© 2026 Mansaku Project</div>
+            <div>{`© 2026 ${APP_NAME} Project`}</div>
 
             <div>{t("help.copyright.notice")}</div>
           </div>

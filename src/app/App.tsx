@@ -1,6 +1,6 @@
 /// <reference path="./fileSystemAccess.d.ts" />
 
-import { APP_VERSION } from "../version";
+import { APP_NAME, APP_VERSION } from "../appInfo";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import * as htmlToImage from "html-to-image";
@@ -5198,7 +5198,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    document.title = "Mansaku";
+    document.title = APP_NAME;
   }, []);
 
   useEffect(() => {
@@ -22294,7 +22294,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
           >
             <img
               src="/favicon.svg"
-              alt="Mansaku"
+              alt={APP_NAME}
               width={14}
               height={14}
               draggable={false}

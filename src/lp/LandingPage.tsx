@@ -1,3 +1,4 @@
+import { APP_NAME } from "../appInfo";
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, MouseEvent } from "react";
 import { ContactDialog, submitMansakuContact } from "../app/ContactDialog";
@@ -80,7 +81,7 @@ function setMetaContent(selector: string, content: string) {
 function BrandName({ style }: { style?: CSSProperties }) {
   return (
     <span translate="no" className="notranslate" style={style}>
-      Mansaku
+      {APP_NAME}
     </span>
   );
 }
@@ -328,7 +329,7 @@ export function LandingPage() {
           <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
             <img
               src="/favicon.svg"
-              alt="Mansaku logo"
+              alt={`${APP_NAME} logo`}
               style={{ width: 64, height: 64, display: "block", flexShrink: 0 }}
             />
 
@@ -382,7 +383,7 @@ export function LandingPage() {
         <div style={heroImageWrapStyle}>
           <img
             src="/images/lp/hero.webp"
-            alt="Mansaku"
+            alt={APP_NAME}
             style={{ width: "100%", display: "block", borderRadius: 18 }}
           />
         </div>
@@ -498,7 +499,7 @@ export function LandingPage() {
             {t("lpFooterRequirements")}
           </div>
 
-          <div>© 2026 Mansaku Project</div>
+          <div>{`© 2026 ${APP_NAME} Project`}</div>
 
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
             <button type="button" onClick={openReviewForm} style={footerLinkStyle}>
@@ -651,6 +652,9 @@ function TermsContent({ t }: { t: LandingTranslator }) {
 
       <h3 style={legalSubHeadingStyle}>{t("lpTermsRightsTitle")}</h3>
       <p style={legalParagraphStyle}>{t("lpTermsRightsBody")}</p>
+
+      <h3 style={legalSubHeadingStyle}>{t("lpTermsCreditTitle")}</h3>
+      <p style={{ ...legalParagraphStyle, whiteSpace: "pre-line" }}>{t("lpTermsCreditBody")}</p>
 
       <h3 style={legalSubHeadingStyle}>{t("lpTermsDisclaimerTitle")}</h3>
       <p style={legalParagraphStyle}>{t("lpTermsDisclaimerBody")}</p>

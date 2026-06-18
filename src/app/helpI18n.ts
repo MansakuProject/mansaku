@@ -1,3 +1,4 @@
+import { APP_NAME, APP_URL } from "../appInfo";
 export const helpMessages = {
   en: {
     "help.title": "Help",
@@ -164,12 +165,18 @@ export const helpMessages = {
       "Illegal acts, acts against public order and morals, and infringement of third-party rights are prohibited.",
     "help.terms.contentRights":
       "Rights to works created with this software and imported images belong to each user or rightful owner.",
+    "help.terms.credit": `Credit attribution when publishing works is optional. However, mentioning ${APP_NAME} in social media posts or work descriptions would greatly support the project's development.
+
+Example:
+
+Created with ${APP_NAME}
+${APP_URL}`,
     "help.terms.changes":
       "Specifications and terms may change without notice.",
 
     "help.privacy.title": "Privacy Policy",
     "help.privacy.localSave":
-      "Mansaku does not provide login, cloud saving, or advertising. Project data is stored in the user's browser or in a location selected by the user.",
+      `${APP_NAME} does not provide login, cloud saving, or advertising. Project data is stored in the user's browser or in a location selected by the user.`,
     "help.privacy.cookies":
       "Local storage may be used to control the review form display and to check its operation. Tracking by advertising services is not performed.",
     "help.privacy.analytics":
@@ -179,11 +186,11 @@ export const helpMessages = {
     "help.privacy.external":
       "PNG, PDF, JSON, and other files exported or saved by the user are managed by the user.",
     "help.version.title": "Version Information",
-    "help.version.name": "Mansaku",
+    "help.version.name": `${APP_NAME}`,
     "help.version.version": "Version",
     "help.copyright.title": "Copyright",
     "help.copyright.notice":
-      "Copyright for Mansaku and related logos, designs, and software structure belongs to Mansaku Project.",
+      `Copyright for ${APP_NAME} and related logos, designs, and software structure belongs to ${APP_NAME} Project.`,
   },
   ja: {
     "help.title": "ヘルプ",
@@ -350,12 +357,18 @@ export const helpMessages = {
       "違法行為、公序良俗に反する行為、第三者の権利を侵害する行為を禁止します。",
     "help.terms.contentRights":
       "本ソフトウェアで作成した作品や読み込んだ画像等の権利は、各ユーザーまたは正当な権利者に帰属します。",
+    "help.terms.credit": `作品公開時のクレジット表記は任意ですが、SNS投稿文や作品説明欄などで${APP_NAME}をご紹介いただけると開発の励みになります。
+
+例）
+
+使用ツール：${APP_NAME}
+${APP_URL}`,
     "help.terms.changes":
       "本ソフトウェアの仕様や利用規約は予告なく変更される場合があります。",
 
     "help.privacy.title": "プライバシーポリシー",
     "help.privacy.localSave":
-      "Mansakuはログイン、クラウド保存、広告配信を行っていません。プロジェクトデータは、ユーザーのブラウザ内、またはユーザーが選択した保存先に保存されます。",
+      `${APP_NAME}はログイン、クラウド保存、広告配信を行っていません。プロジェクトデータは、ユーザーのブラウザ内、またはユーザーが選択した保存先に保存されます。`,
     "help.privacy.cookies":
       "レビュー投稿フォームの表示制御や動作確認のため、ブラウザのローカルストレージを利用する場合があります。広告配信サービスを利用したトラッキングは行っていません。",
     "help.privacy.analytics":
@@ -365,12 +378,12 @@ export const helpMessages = {
     "help.privacy.external":
       "ユーザーが出力・保存したPNG、PDF、JSON等のファイルは、ユーザー自身が管理します。",
     "help.version.title": "バージョン情報",
-    "help.version.name": "Mansaku",
+    "help.version.name": `${APP_NAME}`,
     "help.version.version": "バージョン",
 
     "help.copyright.title": "著作権",
     "help.copyright.notice":
-      "Mansaku および関連するロゴ・デザイン・ソフトウェア構成の著作権は Mansaku Project に帰属します。",    
+      `${APP_NAME} および関連するロゴ・デザイン・ソフトウェア構成の著作権は ${APP_NAME} Project に帰属します。`,    
   },
   ko: {
     "help.title": "도움말",
@@ -532,12 +545,18 @@ export const helpMessages = {
       "불법 행위, 공공질서 및 미풍양속에 반하는 행위, 제3자의 권리를 침해하는 행위를 금지합니다.",
     "help.terms.contentRights":
       "본 소프트웨어로 제작한 작품 및 불러온 이미지의 권리는 각 사용자 또는 정당한 권리자에게 귀속됩니다.",
+    "help.terms.credit": `작품 공개 시 크레딧 표기는 선택 사항입니다. 다만 SNS 게시물이나 작품 설명란 등에 ${APP_NAME}를 소개해 주시면 개발에 큰 힘이 됩니다.
+
+예시:
+
+제작: ${APP_NAME}
+${APP_URL}`,
     "help.terms.changes":
       "본 소프트웨어의 사양 및 약관은 예고 없이 변경될 수 있습니다.",
 
     "help.privacy.title": "개인정보 처리방침",
     "help.privacy.localSave":
-      "Mansaku는 로그인, 클라우드 저장, 광고 게재를 제공하지 않습니다. 프로젝트 데이터는 사용자의 브라우저 안 또는 사용자가 선택한 저장 위치에 저장됩니다.",
+      `${APP_NAME}는 로그인, 클라우드 저장, 광고 게재를 제공하지 않습니다. 프로젝트 데이터는 사용자의 브라우저 안 또는 사용자가 선택한 저장 위치에 저장됩니다.`,
     "help.privacy.cookies":
       "리뷰 작성 폼의 표시 제어와 동작 확인을 위해 브라우저의 로컬 스토리지를 사용할 수 있습니다. 광고 서비스에 의한 추적은 하지 않습니다.",
     "help.privacy.analytics":
@@ -547,12 +566,12 @@ export const helpMessages = {
     "help.privacy.external":
       "사용자가 내보내거나 저장한 PNG, PDF, JSON 등의 파일은 사용자가 직접 관리합니다.",
     "help.version.title": "버전 정보",
-    "help.version.name": "Mansaku",
+    "help.version.name": `${APP_NAME}`,
     "help.version.version": "버전",
 
     "help.copyright.title": "저작권",
     "help.copyright.notice":
-      "Mansaku 및 관련 로고·디자인·소프트웨어 구성의 저작권은 Mansaku Project에 귀속됩니다.",    
+      `${APP_NAME} 및 관련 로고·디자인·소프트웨어 구성의 저작권은 ${APP_NAME} Project에 귀속됩니다.`,    
   },
   zh: {
     "help.title": "帮助",
@@ -714,12 +733,18 @@ export const helpMessages = {
       "禁止违法行为、违反公序良俗的行为以及侵犯第三方权利的行为。",
     "help.terms.contentRights":
       "使用本软件创作的作品及导入的图片等权利归各用户或合法权利人所有。",
+    "help.terms.credit": `发布作品时的署名是可选的。不过，如果能在社交媒体帖子或作品说明中介绍 ${APP_NAME}，将会成为开发的动力。
+
+示例：
+
+使用ツール：${APP_NAME}
+${APP_URL}`,
     "help.terms.changes":
       "本软件的规格及使用条款可能会在不通知的情况下变更。",
 
     "help.privacy.title": "隐私政策",
     "help.privacy.localSave":
-      "Mansaku 不提供登录、云保存或广告投放功能。项目数据会保存在用户的浏览器中，或保存在用户选择的保存位置。",
+      `${APP_NAME} 不提供登录、云保存或广告投放功能。项目数据会保存在用户的浏览器中，或保存在用户选择的保存位置。`,
     "help.privacy.cookies":
       "为控制评论投稿表单的显示和确认其运行情况，可能会使用浏览器的本地存储。不会使用广告投放服务进行跟踪。",
     "help.privacy.analytics":
@@ -729,12 +754,12 @@ export const helpMessages = {
     "help.privacy.external":
       "用户导出或保存的 PNG、PDF、JSON 等文件由用户自行管理。",
     "help.version.title": "版本信息",
-    "help.version.name": "Mansaku",
+    "help.version.name": `${APP_NAME}`,
     "help.version.version": "版本",
 
     "help.copyright.title": "版权",
     "help.copyright.notice":
-      "Mansaku 及相关标志、设计、软件结构的版权归 Mansaku Project 所有。",
+      `${APP_NAME} 及相关标志、设计、软件结构的版权归 ${APP_NAME} Project 所有。`,
   },
   fr: {
     "help.title": "Aide",
@@ -861,7 +886,7 @@ export const helpMessages = {
     "help.export.pdf": "L’export PDF permet d’exporter plusieurs pages en PDF.",
     "help.export.exclude": "Les pages exclues de l’exportation sont omises des exports PNG/PDF.",
     "help.export.unsavedWarning": "Si vous rechargez ou fermez l’onglet avec des modifications non enregistrées, un avertissement s’affiche.",
-    "help.export.webSize": "Mansaku est optimisé pour la consultation sur le web. Les fichiers PNG et PDF exportés utilisent une taille de page fixe conçue pour les bandes dessinées en ligne et la lecture numérique. Les formats de page destinés à l’impression ne sont actuellement pas pris en charge.",
+    "help.export.webSize": `${APP_NAME} est optimisé pour la consultation sur le web. Les fichiers PNG et PDF exportés utilisent une taille de page fixe conçue pour les bandes dessinées en ligne et la lecture numérique. Les formats de page destinés à l’impression ne sont actuellement pas pris en charge.`,
 
     "help.shortcuts.title": "Raccourcis",
     "help.shortcuts.save": "Enregistrer",
@@ -896,12 +921,18 @@ export const helpMessages = {
       "Les actes illégaux, contraires à l’ordre public ou portant atteinte aux droits de tiers sont interdits.",
     "help.terms.contentRights":
       "Les droits des œuvres créées avec ce logiciel et des images importées appartiennent à chaque utilisateur ou ayant droit.",
+    "help.terms.credit": `La mention de crédit est facultative lors de la publication d'une œuvre. Toutefois, présenter ${APP_NAME} dans les publications sur les réseaux sociaux ou dans la description de l'œuvre soutient le développement du projet.
+
+Exemple :
+
+Créé avec ${APP_NAME}
+${APP_URL}`,
     "help.terms.changes":
       "Les spécifications et conditions peuvent être modifiées sans préavis.",
 
     "help.privacy.title": "Politique de confidentialité",
     "help.privacy.localSave":
-      "Mansaku ne propose pas de connexion, de sauvegarde dans le cloud ni de publicité. Les données de projet sont stockées dans le navigateur de l’utilisateur ou à l’emplacement choisi par l’utilisateur.",
+      `${APP_NAME} ne propose pas de connexion, de sauvegarde dans le cloud ni de publicité. Les données de projet sont stockées dans le navigateur de l’utilisateur ou à l’emplacement choisi par l’utilisateur.`,
     "help.privacy.cookies":
       "Le stockage local du navigateur peut être utilisé pour contrôler l’affichage du formulaire d’avis et vérifier son fonctionnement. Aucun suivi par service publicitaire n’est effectué.",
     "help.privacy.analytics":
@@ -911,12 +942,12 @@ export const helpMessages = {
     "help.privacy.external":
       "Les fichiers PNG, PDF, JSON et autres fichiers exportés ou enregistrés par l’utilisateur sont gérés par l’utilisateur lui-même.",
     "help.version.title": "Informations de version",
-    "help.version.name": "Mansaku",
+    "help.version.name": `${APP_NAME}`,
     "help.version.version": "Version",
 
     "help.copyright.title": "Droits d’auteur",
     "help.copyright.notice":
-      "Les droits d’auteur de Mansaku ainsi que des logos, designs et structures logicielles associés appartiennent à Mansaku Project.",
+      `Les droits d’auteur de ${APP_NAME} ainsi que des logos, designs et structures logicielles associés appartiennent à ${APP_NAME} Project.`,
   },
   ru: {
     "help.title": "Справка",
@@ -1043,7 +1074,7 @@ export const helpMessages = {
     "help.export.pdf": "Экспорт PDF выводит несколько страниц в PDF.",
     "help.export.exclude": "Страницы, исключённые из экспорта, не попадают в PNG/PDF.",
     "help.export.unsavedWarning": "При перезагрузке или закрытии вкладки с несохранёнными изменениями появится предупреждение.",
-    "help.export.webSize": "Mansaku оптимизирован для просмотра в интернете. Экспортируемые файлы PNG и PDF используют фиксированный размер страницы, предназначенный для веб-комиксов и цифрового просмотра. Размеры страниц для печати сейчас не поддерживаются.",
+    "help.export.webSize": `${APP_NAME} оптимизирован для просмотра в интернете. Экспортируемые файлы PNG и PDF используют фиксированный размер страницы, предназначенный для веб-комиксов и цифрового просмотра. Размеры страниц для печати сейчас не поддерживаются.`,
 
     "help.shortcuts.title": "Горячие клавиши",
     "help.shortcuts.save": "Сохранить",
@@ -1078,12 +1109,18 @@ export const helpMessages = {
       "Illegale Handlungen, Verstöße gegen die öffentliche Ordnung sowie die Verletzung von Rechten Dritter sind untersagt.",
     "help.terms.contentRights":
       "Die Rechte an mit dieser Software erstellten Werken und importierten Bildern liegen beim jeweiligen Nutzer oder Rechteinhaber.",
+    "help.terms.credit": `Указание авторства при публикации работ не является обязательным. Однако упоминание ${APP_NAME} в публикациях в социальных сетях или описании работы поможет развитию проекта.
+
+Пример:
+
+Создано с помощью ${APP_NAME}
+${APP_URL}`,
     "help.terms.changes":
       "Spezifikationen und Bedingungen können ohne Vorankündigung geändert werden.",
 
     "help.privacy.title": "Политика конфиденциальности",
     "help.privacy.localSave":
-      "Mansaku не предоставляет вход в аккаунт, облачное сохранение или показ рекламы. Данные проекта сохраняются в браузере пользователя или в выбранном пользователем месте сохранения.",
+      `${APP_NAME} не предоставляет вход в аккаунт, облачное сохранение или показ рекламы. Данные проекта сохраняются в браузере пользователя или в выбранном пользователем месте сохранения.`,
     "help.privacy.cookies":
       "Для управления отображением формы отзыва и проверки ее работы может использоваться локальное хранилище браузера. Отслеживание с помощью рекламных сервисов не выполняется.",
     "help.privacy.analytics":
@@ -1093,12 +1130,12 @@ export const helpMessages = {
     "help.privacy.external":
       "Файлы PNG, PDF, JSON и другие файлы, экспортированные или сохраненные пользователем, управляются самим пользователем.",
     "help.version.title": "Сведения о версии",
-    "help.version.name": "Mansaku",
+    "help.version.name": `${APP_NAME}`,
     "help.version.version": "Версия",
 
     "help.copyright.title": "Авторские права",
     "help.copyright.notice":
-      "Das Urheberrecht an Mansaku sowie an zugehörigen Logos, Designs und der Softwarestruktur liegt bei Mansaku Project.",
+      `Das Urheberrecht an ${APP_NAME} sowie an zugehörigen Logos, Designs und der Softwarestruktur liegt bei ${APP_NAME} Project.`,
   },
   es: {
     "help.title": "Ayuda",
@@ -1225,7 +1262,7 @@ export const helpMessages = {
     "help.export.pdf": "Exportar PDF permite exportar varias páginas como PDF.",
     "help.export.exclude": "Las páginas excluidas de la exportación se omiten en la exportación PNG/PDF.",
     "help.export.unsavedWarning": "Si recargas o cierras la pestaña con cambios sin guardar, se mostrará una advertencia.",
-    "help.export.webSize": "Mansaku está optimizado para la visualización en la web. Los archivos PNG y PDF se exportan con un tamaño de página fijo. Están optimizados para la visualización en la web.",
+    "help.export.webSize": `${APP_NAME} está optimizado para la visualización en la web. Los archivos PNG y PDF se exportan con un tamaño de página fijo. Están optimizados para la visualización en la web.`,
 
     "help.shortcuts.title": "Atajos",
     "help.shortcuts.save": "Guardar",
@@ -1260,12 +1297,18 @@ export const helpMessages = {
       "Se prohíben los actos ilegales, los actos contrarios al orden público y la infracción de derechos de terceros.",
     "help.terms.contentRights":
       "Los derechos de las obras creadas con este software y de las imágenes importadas pertenecen a cada usuario o titular legítimo.",
+    "help.terms.credit": `La atribución es opcional al publicar obras. Sin embargo, mencionar ${APP_NAME} en publicaciones de redes sociales o descripciones de la obra ayuda al desarrollo del proyecto.
+
+Ejemplo:
+
+Creado con ${APP_NAME}
+${APP_URL}`,
     "help.terms.changes":
       "Las especificaciones y términos pueden cambiar sin previo aviso.",
 
     "help.privacy.title": "Política de privacidad",
     "help.privacy.localSave":
-      "Mansaku no ofrece inicio de sesión, guardado en la nube ni distribución de anuncios. Los datos del proyecto se almacenan en el navegador del usuario o en la ubicación elegida por el usuario.",
+      `${APP_NAME} no ofrece inicio de sesión, guardado en la nube ni distribución de anuncios. Los datos del proyecto se almacenan en el navegador del usuario o en la ubicación elegida por el usuario.`,
     "help.privacy.cookies":
       "Se puede usar el almacenamiento local del navegador para controlar la visualización del formulario de reseñas y comprobar su funcionamiento. No se realiza seguimiento mediante servicios publicitarios.",
     "help.privacy.analytics":
@@ -1275,12 +1318,12 @@ export const helpMessages = {
     "help.privacy.external":
       "Los archivos PNG, PDF, JSON y otros archivos exportados o guardados por el usuario son gestionados por el propio usuario.",
     "help.version.title": "Información de versión",
-    "help.version.name": "Mansaku",
+    "help.version.name": `${APP_NAME}`,
     "help.version.version": "Versión",
 
     "help.copyright.title": "Derechos de autor",
     "help.copyright.notice":
-      "Los derechos de autor de Mansaku y de los logotipos, diseños y estructura del software relacionados pertenecen a Mansaku Project.",
+      `Los derechos de autor de ${APP_NAME} y de los logotipos, diseños y estructura del software relacionados pertenecen a ${APP_NAME} Project.`,
   },
   de: {
     "help.title": "Hilfe",
@@ -1407,7 +1450,7 @@ export const helpMessages = {
     "help.export.pdf": "Mit PDF-Export gibst du mehrere Seiten als PDF aus.",
     "help.export.exclude": "Vom Export ausgeschlossene Seiten werden beim PNG/PDF-Export ausgelassen.",
     "help.export.unsavedWarning": "Wenn du mit ungespeicherten Änderungen neu lädst oder den Tab schließt, erscheint eine Warnung.",
-    "help.export.webSize": "Mansaku ist für die Anzeige im Web optimiert. PNG- und PDF-Dateien werden mit einer festen Seitengröße exportiert. Sie sind für die Anzeige im Web optimiert.",
+    "help.export.webSize": `${APP_NAME} ist für die Anzeige im Web optimiert. PNG- und PDF-Dateien werden mit einer festen Seitengröße exportiert. Sie sind für die Anzeige im Web optimiert.`,
 
     "help.shortcuts.title": "Tastenkürzel",
     "help.shortcuts.save": "Speichern",
@@ -1436,12 +1479,18 @@ export const helpMessages = {
       "Sono vietati atti illegali, contrari all’ordine pubblico o che violino i diritti di terzi.",
     "help.terms.contentRights":
       "I diritti delle opere create con questo software e delle immagini importate appartengono a ciascun utente o legittimo proprietario.",
+    "help.terms.credit": `Credit attribution when publishing works is optional. However, mentioning ${APP_NAME} in social media posts or work descriptions would greatly support the project's development.
+
+Example:
+
+Created with ${APP_NAME}
+${APP_URL}`,
     "help.terms.changes":
       "Specifiche e termini possono cambiare senza preavviso.",
 
     "help.privacy.title": "Datenschutzerklärung",
     "help.privacy.localSave":
-      "Mansaku bietet keine Anmeldung, keine Cloud-Speicherung und keine Werbung. Projektdaten werden im Browser des Nutzers oder an einem vom Nutzer ausgewählten Speicherort gespeichert.",
+      `${APP_NAME} bietet keine Anmeldung, keine Cloud-Speicherung und keine Werbung. Projektdaten werden im Browser des Nutzers oder an einem vom Nutzer ausgewählten Speicherort gespeichert.`,
     "help.privacy.cookies":
       "Zur Steuerung der Anzeige des Bewertungsformulars und zur Funktionsprüfung kann der lokale Speicher des Browsers verwendet werden. Tracking durch Werbedienste findet nicht statt.",
     "help.privacy.analytics":
@@ -1451,12 +1500,12 @@ export const helpMessages = {
     "help.privacy.external":
       "Vom Nutzer exportierte oder gespeicherte PNG-, PDF-, JSON- und andere Dateien werden vom Nutzer selbst verwaltet.",
     "help.version.title": "Versionsinformationen",
-    "help.version.name": "Mansaku",
+    "help.version.name": `${APP_NAME}`,
     "help.version.version": "Version",
 
     "help.copyright.title": "Urheberrecht",
     "help.copyright.notice":
-      "Il copyright di Mansaku e dei relativi loghi, design e struttura software appartiene a Mansaku Project.",
+      `Il copyright di ${APP_NAME} e dei relativi loghi, design e struttura software appartiene a ${APP_NAME} Project.`,
   },
 
 } as const;
