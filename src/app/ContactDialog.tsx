@@ -1,4 +1,4 @@
-import { APP_VERSION } from "../version";
+import { APP_VERSION } from "../appInfo";
 import { useEffect, useMemo, useState } from "react";
 
 export type ContactSource = "lp" | "app";

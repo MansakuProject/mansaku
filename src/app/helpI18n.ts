@@ -182,9 +182,9 @@ ${APP_URL}`,
     "help.privacy.analytics":
       "When using the review form, you may send a rating, comment, display name, and whether the review may be shown on the site. Submitted reviews may be introduced on the official site only when publication is allowed and after the content is checked.",
     "help.privacy.ads":
-      "Content submitted from the review form is stored in an external service for review management. Project data, imported images, and exported PNG/PDF/JSON files are not sent by review submission.",
+      "Content submitted from the review form is stored in an external service for review management. Project data, imported images, and exported PNG/PDF files and project files are not sent by review submission.",
     "help.privacy.external":
-      "PNG, PDF, JSON, and other files exported or saved by the user are managed by the user.",
+      "PNG, PDF, project files, and other files exported or saved by the user are managed by the user.",
     "help.version.title": "Version Information",
     "help.version.name": `${APP_NAME}`,
     "help.version.version": "Version",
@@ -374,9 +374,9 @@ ${APP_URL}`,
     "help.privacy.analytics":
       "レビュー投稿フォームでは、評価、コメント、表示名、サイト掲載可否を送信できます。送信されたレビューは、内容確認後、掲載を許可されたものに限り公式サイト上で紹介する場合があります。",
     "help.privacy.ads":
-      "レビュー投稿フォームから送信された内容は、レビュー管理のため外部サービスに保存されます。作品データ、読み込んだ画像、出力したPNG・PDF・JSONは、レビュー投稿によって送信されません。",
+      "レビュー投稿フォームから送信された内容は、レビュー管理のため外部サービスに保存されます。作品データ、読み込んだ画像、出力したPNG・PDF・プロジェクトファイルは、レビュー投稿によって送信されません。",
     "help.privacy.external":
-      "ユーザーが出力・保存したPNG、PDF、JSON等のファイルは、ユーザー自身が管理します。",
+      "ユーザーが出力・保存したPNG、PDF、プロジェクトファイル等のファイルは、ユーザー自身が管理します。",
     "help.version.title": "バージョン情報",
     "help.version.name": `${APP_NAME}`,
     "help.version.version": "バージョン",
@@ -562,9 +562,9 @@ ${APP_URL}`,
     "help.privacy.analytics":
       "리뷰 작성 폼에서는 평점, 댓글, 표시 이름, 사이트 게재 허용 여부를 보낼 수 있습니다. 전송된 리뷰는 내용 확인 후 게재가 허용된 것에 한해 공식 사이트에 소개될 수 있습니다.",
     "help.privacy.ads":
-      "리뷰 작성 폼에서 전송된 내용은 리뷰 관리를 위해 외부 서비스에 저장됩니다. 작품 데이터, 불러온 이미지, 내보낸 PNG/PDF/JSON은 리뷰 작성으로 전송되지 않습니다.",
+      "리뷰 작성 폼에서 전송된 내용은 리뷰 관리를 위해 외부 서비스에 저장됩니다. 작품 데이터, 불러온 이미지, 내보낸 PNG/PDF 파일과 프로젝트 파일은 리뷰 작성으로 전송되지 않습니다.",
     "help.privacy.external":
-      "사용자가 내보내거나 저장한 PNG, PDF, JSON 등의 파일은 사용자가 직접 관리합니다.",
+      "사용자가 내보내거나 저장한 PNG, PDF, 프로젝트 파일 등의 파일은 사용자가 직접 관리합니다.",
     "help.version.title": "버전 정보",
     "help.version.name": `${APP_NAME}`,
     "help.version.version": "버전",
@@ -750,9 +750,9 @@ ${APP_URL}`,
     "help.privacy.analytics":
       "在评论投稿表单中，可以发送评分、评论、显示名称以及是否允许在网站上掲載。提交的评论经内容确认后，仅限允许掲載的内容可能会在官方网站上介绍。",
     "help.privacy.ads":
-      "通过评论投稿表单发送的内容会保存到外部服务，用于评论管理。作品数据、导入的图片、导出的 PNG/PDF/JSON 不会因评论投稿而发送。",
+      "通过评论投稿表单发送的内容会保存到外部服务，用于评论管理。作品数据、导入的图片、导出的 PNG/PDF 文件和项目文件不会因评论投稿而发送。",
     "help.privacy.external":
-      "用户导出或保存的 PNG、PDF、JSON 等文件由用户自行管理。",
+      "用户导出或保存的 PNG、PDF、项目文件等文件由用户自行管理。",
     "help.version.title": "版本信息",
     "help.version.name": `${APP_NAME}`,
     "help.version.version": "版本",
@@ -938,9 +938,9 @@ ${APP_URL}`,
     "help.privacy.analytics":
       "Le formulaire d’avis permet d’envoyer une note, un commentaire, un nom d’affichage et l’autorisation de publication sur le site. Les avis envoyés peuvent être présentés sur le site officiel uniquement après vérification du contenu et si leur publication est autorisée.",
     "help.privacy.ads":
-      "Le contenu envoyé depuis le formulaire d’avis est conservé dans un service externe pour la gestion des avis. Les données d’œuvre, les images importées et les fichiers PNG/PDF/JSON exportés ne sont pas envoyés par la soumission d’un avis.",
+      "Le contenu envoyé depuis le formulaire d’avis est conservé dans un service externe pour la gestion des avis. Les données d’œuvre, les images importées et les fichiers fichiers PNG/PDF et les fichiers de projet exportés ne sont pas envoyés par la soumission d’un avis.",
     "help.privacy.external":
-      "Les fichiers PNG, PDF, JSON et autres fichiers exportés ou enregistrés par l’utilisateur sont gérés par l’utilisateur lui-même.",
+      "Les fichiers PNG, PDF, fichiers de projet et autres fichiers exportés ou enregistrés par l’utilisateur sont gérés par l’utilisateur lui-même.",
     "help.version.title": "Informations de version",
     "help.version.name": `${APP_NAME}`,
     "help.version.version": "Version",
@@ -1126,9 +1126,9 @@ ${APP_URL}`,
     "help.privacy.analytics":
       "В форме отзыва можно отправить оценку, комментарий, отображаемое имя и разрешение на публикацию на сайте. Отправленные отзывы могут быть представлены на официальном сайте только после проверки содержания и только если публикация разрешена.",
     "help.privacy.ads":
-      "Содержимое, отправленное через форму отзыва, сохраняется во внешнем сервисе для управления отзывами. Данные произведений, импортированные изображения и экспортированные PNG/PDF/JSON не отправляются при отправке отзыва.",
+      "Содержимое, отправленное через форму отзыва, сохраняется во внешнем сервисе для управления отзывами. Данные произведений, импортированные изображения и экспортированные файлы PNG/PDF и файлы проектов не отправляются при отправке отзыва.",
     "help.privacy.external":
-      "Файлы PNG, PDF, JSON и другие файлы, экспортированные или сохраненные пользователем, управляются самим пользователем.",
+      "Файлы PNG, PDF, файлы проектов и другие файлы, экспортированные или сохраненные пользователем, управляются самим пользователем.",
     "help.version.title": "Сведения о версии",
     "help.version.name": `${APP_NAME}`,
     "help.version.version": "Версия",
@@ -1314,9 +1314,9 @@ ${APP_URL}`,
     "help.privacy.analytics":
       "En el formulario de reseñas se pueden enviar una calificación, un comentario, un nombre visible y si se permite la publicación en el sitio. Las reseñas enviadas pueden presentarse en el sitio oficial solo después de revisar el contenido y únicamente si se permitió su publicación.",
     "help.privacy.ads":
-      "El contenido enviado desde el formulario de reseñas se almacena en un servicio externo para gestionar las reseñas. Los datos de obras, las imágenes importadas y los archivos PNG/PDF/JSON exportados no se envían por publicar una reseña.",
+      "El contenido enviado desde el formulario de reseñas se almacena en un servicio externo para gestionar las reseñas. Los datos de obras, las imágenes importadas y los archivos archivos PNG/PDF y archivos de proyecto exportados no se envían por publicar una reseña.",
     "help.privacy.external":
-      "Los archivos PNG, PDF, JSON y otros archivos exportados o guardados por el usuario son gestionados por el propio usuario.",
+      "Los archivos PNG, PDF, archivos de proyecto y otros archivos exportados o guardados por el usuario son gestionados por el propio usuario.",
     "help.version.title": "Información de versión",
     "help.version.name": `${APP_NAME}`,
     "help.version.version": "Versión",
@@ -1496,9 +1496,9 @@ ${APP_URL}`,
     "help.privacy.analytics":
       "Über das Bewertungsformular können Bewertung, Kommentar, Anzeigename und die Zustimmung zur Veröffentlichung auf der Website gesendet werden. Gesendete Bewertungen können nach inhaltlicher Prüfung nur dann auf der offiziellen Website vorgestellt werden, wenn die Veröffentlichung erlaubt wurde.",
     "help.privacy.ads":
-      "Über das Bewertungsformular gesendete Inhalte werden zur Verwaltung der Bewertungen in einem externen Dienst gespeichert. Werkdaten, importierte Bilder sowie exportierte PNG/PDF/JSON-Dateien werden durch das Absenden einer Bewertung nicht übertragen.",
+      "Über das Bewertungsformular gesendete Inhalte werden zur Verwaltung der Bewertungen in einem externen Dienst gespeichert. Werkdaten, importierte Bilder sowie exportierte PNG/PDF-Dateien und Projektdateien werden durch das Absenden einer Bewertung nicht übertragen.",
     "help.privacy.external":
-      "Vom Nutzer exportierte oder gespeicherte PNG-, PDF-, JSON- und andere Dateien werden vom Nutzer selbst verwaltet.",
+      "Vom Nutzer exportierte oder gespeicherte PNG-, PDF-, Projekt- und andere Dateien werden vom Nutzer selbst verwaltet.",
     "help.version.title": "Versionsinformationen",
     "help.version.name": `${APP_NAME}`,
     "help.version.version": "Version",

@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { APP_VERSION } from "./src/version";
+import { APP_VERSION } from "./src/appInfo";
 
 export default defineConfig({
   plugins: [react()],
