@@ -71,3 +71,34 @@ export function getNextAddedSoundPosition(
 
   return { x: baseX, y: baseY };
 }
+export function getNextAddedMosaicPosition(
+  currentPage: Page | null,
+  lastAddedMosaic: LastAddedItem,
+  mosaicW = 20,
+  mosaicH = 12
+) {
+  const baseX = 40;
+  const baseY = 44;
+
+  if (!currentPage || !lastAddedMosaic) {
+    return { x: baseX, y: baseY };
+  }
+
+  if (lastAddedMosaic.pageId !== currentPage.id) {
+    return { x: baseX, y: baseY };
+  }
+
+  const existing = currentPage.mosaics?.find((m) => m.id === lastAddedMosaic.id);
+  if (!existing) {
+    return { x: baseX, y: baseY };
+  }
+
+  if (existing.x === lastAddedMosaic.x && existing.y === lastAddedMosaic.y) {
+    return {
+      x: clamp(existing.x + ADD_OFFSET_PERCENT, 0, 100 - mosaicW),
+      y: clamp(existing.y + ADD_OFFSET_PERCENT, 0, 100 - mosaicH),
+    };
+  }
+
+  return { x: baseX, y: baseY };
+}

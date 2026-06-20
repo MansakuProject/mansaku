@@ -115,3 +115,7 @@ export function trackReviewSubmitSuccess(rating: number, exportType: "png" | "pd
 }
 
 export {};
+
+export function trackMosaicAdd(): void {
+  trackEvent("mosaic_add");
+}

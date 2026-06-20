@@ -1,4 +1,4 @@
-import type { Page, Frame, Bubble, SoundText, FramePolygonPoints, FrameTiltValue, SoundTiltValue } from "./types";
+import type { Page, Frame, Bubble, SoundText, Mosaic, FramePolygonPoints, FrameTiltValue, SoundTiltValue } from "./types";
 import { getFramePolygonPointsAbsolute } from "./frameGeometry";
 
 export function clamp(value: number, min: number, max: number) {
@@ -101,6 +101,54 @@ export function normalizeBubble(bubble: any, index: number): Bubble {
 export function getNextSoundLayer(page: Page | null) {
   if (!page || page.sounds.length === 0) return 1;
   return Math.max(...page.sounds.map((s) => s.layer ?? 0)) + 1;
+}
+
+export function getNextMosaicLayer(page: Page | null) {
+  if (!page || !Array.isArray(page.mosaics) || page.mosaics.length === 0) return 1;
+  return Math.max(...page.mosaics.map((m) => m.layer ?? 0)) + 1;
+}
+
+function normalizeMosaicPixelSize(value: any, legacyStrength?: any): number {
+  if (value === "weak") return 16;
+  if (value === "medium") return 32;
+  if (value === "strong") return 48;
+
+  const n = Number(value);
+  if (Number.isFinite(n)) return clamp(Math.round(n), 1, 64);
+
+  if (legacyStrength === "weak") return 16;
+  if (legacyStrength === "medium") return 32;
+  if (legacyStrength === "strong") return 48;
+
+  const strength = Number(legacyStrength);
+  if (Number.isFinite(strength)) {
+    const normalizedStrength = clamp(Math.round(strength), 0, 100);
+    return clamp(1 + Math.round((normalizedStrength / 100) * 63), 1, 64);
+  }
+
+  return 32;
+}
+
+function normalizeMosaicPercent(value: any, fallback: number, min: number, max: number) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return clamp(n, min, max);
+}
+
+export function normalizeMosaic(mosaic: any, index: number): Mosaic {
+  const w = normalizeMosaicPercent(mosaic?.w, 20, 1, 100);
+  const h = normalizeMosaicPercent(mosaic?.h, 12, 1, 100);
+
+  return {
+    id: Number.isFinite(Number(mosaic?.id)) ? Number(mosaic.id) : Date.now() + index,
+    x: normalizeMosaicPercent(mosaic?.x, 40, 0, 100 - w),
+    y: normalizeMosaicPercent(mosaic?.y, 44, 0, 100 - h),
+    w,
+    h,
+    pixelSize: normalizeMosaicPixelSize(mosaic?.pixelSize, mosaic?.strength),
+    layer: mosaic?.layer ?? index + 1,
+    clipToFrame: mosaic?.clipToFrame !== false,
+  };
 }
 
 
@@ -228,12 +276,15 @@ export function normalizePage(page: Page): Page {
   return {
     ...page,
     visible: page.visible ?? true,
-    frames: page.frames.map((frame) => normalizeFrame(frame)),
-    bubbles: page.bubbles.map((bubble, index) =>
+    frames: (page.frames ?? []).map((frame) => normalizeFrame(frame)),
+    bubbles: (page.bubbles ?? []).map((bubble, index) =>
       normalizeBubble(bubble, index)
     ),
-    sounds: page.sounds.map((sound, index) =>
+    sounds: (page.sounds ?? []).map((sound, index) =>
       normalizeSound(sound, index)
+    ),
+    mosaics: (page.mosaics ?? []).map((mosaic, index) =>
+      normalizeMosaic(mosaic, index)
     ),
   };
 }

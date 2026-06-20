@@ -49,6 +49,7 @@ function createTemplatePage(id: number, frames: Frame[]): Page {
     frames: [createInnerLockedFrame(), ...frames],
     bubbles: [],
     sounds: [],
+    mosaics: [],
   };
 }
 

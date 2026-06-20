@@ -2126,3 +2126,46 @@ export function RainbowFillSvgIcon() {
     </svg>
   );
 }
+
+// ----------
+// モザイク追加
+// ----------
+export function MosaicAddSvgIcon() {
+  const cellSize = 4;
+  const startX = 2;
+  const startY = 2;
+
+  return (
+    <svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24" aria-hidden="true">
+      {[0, 1, 2, 3].flatMap((row) =>
+        [0, 1, 2, 3].map((col) => (
+          <rect
+            key={`${row}-${col}`}
+            x={startX + col * cellSize}
+            y={startY + row * cellSize}
+            width={cellSize}
+            height={cellSize}
+            fill={(row + col) % 2 === 0 ? "#111827" : "#ffffff"}
+          />
+        ))
+      )}
+
+      <circle
+        cx="17.5"
+        cy="17.5"
+        r="6.2"
+        fill="#111827"
+        stroke="#ffffff"
+        strokeWidth={ICON_STROKE}
+      />
+
+      <path
+        d="M13.7 17.5H21.3M17.5 13.7V21.3"
+        fill="none"
+        stroke="#ffffff"
+        strokeWidth={ICON_STROKE * 1.15}
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}

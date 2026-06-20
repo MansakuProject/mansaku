@@ -57,5 +57,6 @@ export function createNewPage(id: number): Page {
     ],
     bubbles: [],
     sounds: [],
+    mosaics: [],
   };
 }

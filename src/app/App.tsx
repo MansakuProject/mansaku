@@ -22,6 +22,7 @@ import type {
   BubbleBackgroundColor,
   Bubble,
   SoundText,
+  Mosaic,
   Page,
   ProjectData,
   DragState,
@@ -84,7 +85,9 @@ import {
   getNextBubbleLayer,
   normalizeBubble,
   getNextSoundLayer,
+  getNextMosaicLayer,
   normalizeSound,
+  normalizeMosaic,
   normalizePage,
 } from "./pageUtils";
 
@@ -128,6 +131,7 @@ import {
 import {
   getNextAddedBubblePosition,
   getNextAddedSoundPosition,
+  getNextAddedMosaicPosition,
 } from "./positionUtils";
 
 import {
@@ -174,6 +178,7 @@ import {
   trackPageAdd,
   trackSaveProject,
   trackSoundAdd,
+  trackMosaicAdd,
 } from "./analytics";
 
 import {
@@ -214,6 +219,7 @@ import {
   FrameAddSvgIcon,
   BubbleAddSvgIcon,
   DrawnTextAddSvgIcon,
+  MosaicAddSvgIcon,
   LayerOrderSvgIcon,
   PageVisibleSvgIcon,
   BubbleTypeIcon,
@@ -1506,7 +1512,8 @@ type MainMode = "manga" | "template";
 type SelectedItem =
   | { kind: "frame"; id: number }
   | { kind: "bubble"; id: number }
-  | { kind: "sound"; id: number };
+  | { kind: "sound"; id: number }
+  | { kind: "mosaic"; id: number };
 
 type SelectionBox = {
   startX: number;
@@ -1570,6 +1577,7 @@ function createTemplatePage(
     frames: [createInnerLockedFrame(), ...frames],
     bubbles: [],
     sounds: [],
+    mosaics: [],
   };
 }
 
@@ -1990,7 +1998,10 @@ const sanitizeSelectedItems = (items: SelectedItem[]) => {
 };
 
 const DRAG_COPY_GHOST_ID_BASE = -900000000000;
-const SOUND_LAYER_Z_BASE = 20000;
+const MOSAIC_LAYER_Z_BASE = 10000;
+const EFFECT_LINE_LAYER_Z_BASE = 15000;
+const BUBBLE_LAYER_Z_BASE = 20000;
+const SOUND_LAYER_Z_BASE = 30000;
 
 const isDragCopyGhostId = (id: number) => {
   return id <= DRAG_COPY_GHOST_ID_BASE;
@@ -2071,6 +2082,7 @@ function createCoverSlotPage(
     frames: [createCoverBaseFrame(frameId, sourceBaseFrame), ...extraFrames],
     bubbles: source?.bubbles ? structuredClone(source.bubbles) : [],
     sounds: source?.sounds ? structuredClone(source.sounds) : [],
+    mosaics: source?.mosaics ? structuredClone(source.mosaics) : [],
   };
 }
 
@@ -5364,6 +5376,13 @@ export default function App() {
     y: number;
   } | null>(null);
 
+  const lastAddedMosaicRef = useRef<{
+    pageId: number;
+    id: number;
+    x: number;
+    y: number;
+  } | null>(null);
+
   const lastPastedObjectRef = useRef<{
     pageId: number;
     itemKeys: string[];
@@ -5393,11 +5412,11 @@ export default function App() {
     );
   };
 
-  const createAppError = (code: string) => {
+  const createAppError = (code: AppErrorCode) => {
     return new Error(code);
   };
 
-  const isAppError = (error: unknown, code: string) => {
+  const isAppError = (error: unknown, code: AppErrorCode) => {
     return error instanceof Error && error.message === code;
   };
 
@@ -5408,6 +5427,8 @@ export default function App() {
     PNG_ZIP: "MansakuPngZipFailed",
     PNG_WRITE: "MansakuPngWriteFailed",
   } as const;
+
+  type AppErrorCode = (typeof APP_ERROR)[keyof typeof APP_ERROR];
 
   const hiddenImageInputRef = useRef<HTMLInputElement | null>(null);
   const pendingImageFrameIdRef = useRef<number | null>(null);
@@ -6077,6 +6098,10 @@ export default function App() {
     .filter((item): item is Extract<SelectedItem, { kind: "sound" }> => item.kind === "sound")
     .map((item) => item.id);
 
+  const selectedMosaicIds = selectedItems
+    .filter((item): item is Extract<SelectedItem, { kind: "mosaic" }> => item.kind === "mosaic")
+    .map((item) => item.id);
+
   const selectedMovableItems = sanitizeSelectedItems(selectedItems);;
     
   const selectedFrame =
@@ -6101,6 +6126,11 @@ export default function App() {
       ? currentPage?.sounds.find((s) => s.id === primarySelectedItem.id) ?? null
       : null;
 
+  const selectedMosaic =
+    isSingleSelected && primarySelectedItem?.kind === "mosaic"
+      ? currentPage?.mosaics?.find((m) => m.id === primarySelectedItem.id) ?? null
+      : null;
+
   const selectedEditorDefaultSectionKey = selectedFrame
     ? selectedFrameHasImage
       ? "frame-image-move-copy"
@@ -6109,6 +6139,8 @@ export default function App() {
     ? "bubble-text"
     : selectedSound
     ? "sound-text"
+    : selectedMosaic
+    ? "mosaic-settings"
     : null;
 
   const selectedEditorTargetSignature = selectedFrame
@@ -6117,6 +6149,8 @@ export default function App() {
     ? `bubble:${selectedBubble.id}`
     : selectedSound
     ? `sound:${selectedSound.id}`
+    : selectedMosaic
+    ? `mosaic:${selectedMosaic.id}`
     : null;
 
   useEffect(() => {
@@ -6534,6 +6568,7 @@ export default function App() {
     (
       !!selectedBubble ||
       !!selectedSound ||
+      !!selectedMosaic ||
       !!selectedFrame
     );
 
@@ -6548,6 +6583,7 @@ useLayoutEffect(() => {
 }, [
   selectedBubble?.id,
   selectedSound?.id,
+  selectedMosaic?.id,
   selectedFrame?.id,
   showMainFloatingEditorPanel,
 ]);
@@ -6977,7 +7013,20 @@ useLayoutEffect(() => {
         startY: sound.y,
       }));
 
-    return [...frameItems, ...bubbleItems, ...soundItems];
+    const mosaicItems = (page.mosaics ?? [])
+      .filter((mosaic) =>
+        effectiveSelection.some(
+          (item) => item.kind === "mosaic" && item.id === mosaic.id
+        )
+      )
+      .map((mosaic) => ({
+        kind: "mosaic" as const,
+        id: mosaic.id,
+        startX: mosaic.x,
+        startY: mosaic.y,
+      }));
+
+    return [...frameItems, ...bubbleItems, ...soundItems, ...mosaicItems];
   };
 
   const buildDragCopyGhostFromSelection = (
@@ -7004,6 +7053,11 @@ useLayoutEffect(() => {
           selection.some((item) => item.kind === "sound" && item.id === sound.id)
         )
         .map((sound) => structuredClone(sound)),
+      mosaics: (page.mosaics ?? [])
+        .filter((mosaic) =>
+          selection.some((item) => item.kind === "mosaic" && item.id === mosaic.id)
+        )
+        .map((mosaic) => structuredClone(mosaic)),
     };
   };
 
@@ -7028,7 +7082,8 @@ useLayoutEffect(() => {
     if (
       copyGhost.frames.length === 0 &&
       copyGhost.bubbles.length === 0 &&
-      copyGhost.sounds.length === 0
+      copyGhost.sounds.length === 0 &&
+      copyGhost.mosaics.length === 0
     ) {
       return;
     }
@@ -7044,6 +7099,7 @@ useLayoutEffect(() => {
 
           const bubbleLayerStart = getNextBubbleLayer(page);
           const soundLayerStart = getNextSoundLayer(page);
+          const mosaicLayerStart = getNextMosaicLayer(page);
 
           const copiedFrames = copyGhost.frames.map((frame) => ({
             ...structuredClone(frame),
@@ -7062,6 +7118,12 @@ useLayoutEffect(() => {
             layer: soundLayerStart + index,
           }));
 
+          const copiedMosaics = copyGhost.mosaics.map((mosaic, index) => ({
+            ...structuredClone(mosaic),
+            id: nextId(),
+            layer: mosaicLayerStart + index,
+          }));
+
           return {
             ...page,
             frames: isSpecialCoverPageIdValue(page.id)
@@ -7069,6 +7131,7 @@ useLayoutEffect(() => {
               : ensureInnerLockedFrame([...page.frames, ...copiedFrames]),
             bubbles: [...page.bubbles, ...copiedBubbles],
             sounds: [...page.sounds, ...copiedSounds],
+            mosaics: [...(page.mosaics ?? []), ...copiedMosaics],
           };
         }),
       { recordHistory: false }
@@ -7453,6 +7516,13 @@ useLayoutEffect(() => {
     options?: { additive?: boolean }
   ) => {
     toggleSelectedItem({ kind: "sound", id: soundId }, options);
+  };
+
+  const selectMosaic = (
+    mosaicId: number,
+    options?: { additive?: boolean }
+  ) => {
+    toggleSelectedItem({ kind: "mosaic", id: mosaicId }, options);
   };
 
   const fitSelectedBubbleSizeBeforeLeavingEditor = () => {
@@ -8336,17 +8406,20 @@ useEffect(() => {
   const hasClipboardContent =
     (clipboardItem?.frames?.length ?? 0) > 0 ||
     (clipboardItem?.bubbles?.length ?? 0) > 0 ||
-    (clipboardItem?.sounds?.length ?? 0) > 0;
+    (clipboardItem?.sounds?.length ?? 0) > 0 ||
+    (clipboardItem?.mosaics?.length ?? 0) > 0;
 
   const getClipboardPasteLabel = () => {
     const frameCount = clipboardItem?.frames?.length ?? 0;
     const bubbleCount = clipboardItem?.bubbles?.length ?? 0;
     const soundCount = clipboardItem?.sounds?.length ?? 0;
+    const mosaicCount = clipboardItem?.mosaics?.length ?? 0;
 
     const kinds = [
       frameCount > 0 ? t("frame") : null,
       bubbleCount > 0 ? t("bubble") : null,
       soundCount > 0 ? t("sound") : null,
+      mosaicCount > 0 ? t("mosaic") : null,
     ].filter((value): value is NonNullable<typeof value> => value !== null);
 
     if (kinds.length === 0) return t("paste");
@@ -8367,8 +8440,13 @@ useEffect(() => {
       return bubble ? { xPercent: bubble.x, yPercent: bubble.y } : null;
     }
 
-    const sound = currentPage.sounds.find((s) => s.id === primarySelectedItem.id);
-    return sound ? { xPercent: sound.x, yPercent: sound.y } : null;
+    if (primarySelectedItem.kind === "sound") {
+      const sound = currentPage.sounds.find((s) => s.id === primarySelectedItem.id);
+      return sound ? { xPercent: sound.x, yPercent: sound.y } : null;
+    }
+
+    const mosaic = (currentPage.mosaics ?? []).find((m) => m.id === primarySelectedItem.id);
+    return mosaic ? { xPercent: mosaic.x, yPercent: mosaic.y } : null;
   };
 
   const getKeyboardPastePoint = () => {
@@ -8409,10 +8487,18 @@ useEffect(() => {
       .sort((a, b) => a.layer - b.layer)
       .map((s) => ({ ...s }));
 
+    const copiedMosaics = (currentPage.mosaics ?? [])
+      .filter((m) =>
+        activeItems.some((item) => item.kind === "mosaic" && item.id === m.id)
+      )
+      .sort((a, b) => a.layer - b.layer)
+      .map((m) => ({ ...m }));
+
     if (
       copiedFrames.length === 0 &&
       copiedBubbles.length === 0 &&
-      copiedSounds.length === 0
+      copiedSounds.length === 0 &&
+      copiedMosaics.length === 0
     ) {
       return;
     }
@@ -8422,6 +8508,7 @@ useEffect(() => {
       frames: copiedFrames,
       bubbles: copiedBubbles,
       sounds: copiedSounds,
+      mosaics: copiedMosaics,
     });
 
     applyPagesChange((prev) =>
@@ -8441,6 +8528,12 @@ useEffect(() => {
               sounds: page.sounds.filter(
                 (s) =>
                   !activeItems.some((item) => item.kind === "sound" && item.id === s.id)
+              ),
+              mosaics: (page.mosaics ?? []).filter(
+                (mosaic) =>
+                  !activeItems.some(
+                    (item) => item.kind === "mosaic" && item.id === mosaic.id
+                  )
               ),
             }
           : page
@@ -8477,10 +8570,18 @@ useEffect(() => {
       .sort((a, b) => a.layer - b.layer)
       .map((s) => ({ ...s }));
 
+    const copiedMosaics = (currentPage.mosaics ?? [])
+      .filter((m) =>
+        activeItems.some((item) => item.kind === "mosaic" && item.id === m.id)
+      )
+      .sort((a, b) => a.layer - b.layer)
+      .map((m) => ({ ...m }));
+
     if (
       copiedFrames.length === 0 &&
       copiedBubbles.length === 0 &&
-      copiedSounds.length === 0
+      copiedSounds.length === 0 &&
+      copiedMosaics.length === 0
     ) {
       return;
     }
@@ -8490,6 +8591,7 @@ useEffect(() => {
       frames: copiedFrames,
       bubbles: copiedBubbles,
       sounds: copiedSounds,
+      mosaics: copiedMosaics,
     });
 
     setPageClipboard(null);
@@ -8508,11 +8610,13 @@ useEffect(() => {
     const sourceFrames = clipboardItem.frames ?? [];
     const sourceBubbles = clipboardItem.bubbles ?? [];
     const sourceSounds = clipboardItem.sounds ?? [];
+    const sourceMosaics = clipboardItem.mosaics ?? [];
 
     if (
       sourceFrames.length === 0 &&
       sourceBubbles.length === 0 &&
-      sourceSounds.length === 0
+      sourceSounds.length === 0 &&
+      sourceMosaics.length === 0
     ) {
       return;
     }
@@ -8535,6 +8639,12 @@ useEffect(() => {
         ...currentPage.sounds
           .filter((sound) => keySet.has(`sound:${sound.id}`))
           .map((sound) => ({ x: sound.x, y: sound.y })),
+        ...(currentPage.mosaics ?? [])
+          .filter((mosaic) => keySet.has(`mosaic:${mosaic.id}`))
+          .flatMap((mosaic) => [
+            { x: mosaic.x, y: mosaic.y },
+            { x: mosaic.x + mosaic.w, y: mosaic.y + mosaic.h },
+          ]),
       ];
 
       if (points.length === 0) return null;
@@ -8553,6 +8663,7 @@ useEffect(() => {
 
     const bubbleLayerStart = getNextBubbleLayer(currentPage);
     const soundLayerStart = getNextSoundLayer(currentPage);
+    const mosaicLayerStart = getNextMosaicLayer(currentPage);
 
     const framePoints = sourceFrames.flatMap((frame) =>
       getFrameAbsolutePoints(frame)
@@ -8565,6 +8676,10 @@ useEffect(() => {
         { x: bubble.x + bubble.w, y: bubble.y + bubble.h },
       ]),
       ...sourceSounds.map((sound) => ({ x: sound.x, y: sound.y })),
+      ...sourceMosaics.flatMap((mosaic) => [
+        { x: mosaic.x, y: mosaic.y },
+        { x: mosaic.x + mosaic.w, y: mosaic.y + mosaic.h },
+      ]),
     ];
 
     if (boundsPoints.length === 0) return;
@@ -8639,17 +8754,27 @@ useEffect(() => {
       layer: soundLayerStart + index,
     }));
 
+    const pastedMosaics: Mosaic[] = sourceMosaics.map((mosaic, index) => ({
+      ...mosaic,
+      id: nextId(),
+      x: mosaic.x + offsetX,
+      y: mosaic.y + offsetY,
+      layer: mosaicLayerStart + index,
+    }));
+
     updateCurrentPage((page) => ({
       ...page,
       frames: [...page.frames, ...pastedFrames],
       bubbles: [...page.bubbles, ...pastedBubbles],
       sounds: [...page.sounds, ...pastedSounds],
+      mosaics: [...(page.mosaics ?? []), ...pastedMosaics],
     }));
 
     const pastedItems = [
       ...pastedFrames.map((frame) => ({ kind: "frame" as const, id: frame.id })),
       ...pastedBubbles.map((bubble) => ({ kind: "bubble" as const, id: bubble.id })),
       ...pastedSounds.map((sound) => ({ kind: "sound" as const, id: sound.id })),
+      ...pastedMosaics.map((mosaic) => ({ kind: "mosaic" as const, id: mosaic.id })),
     ];
 
     setSelectedItems(pastedItems);
@@ -8697,6 +8822,12 @@ useEffect(() => {
                 (sound) =>
                   !activeItems.some(
                     (item) => item.kind === "sound" && item.id === sound.id
+                  )
+              ),
+              mosaics: (page.mosaics ?? []).filter(
+                (mosaic) =>
+                  !activeItems.some(
+                    (item) => item.kind === "mosaic" && item.id === mosaic.id
                   )
               ),
             }
@@ -8759,6 +8890,17 @@ useEffect(() => {
       }
     }
 
+    if (target.kind === "mosaic") {
+      const alreadySelected = selectedItems.some(
+        (item) => item.kind === "mosaic" && item.id === target.id
+      );
+
+      if (!alreadySelected) {
+        setSelectedItems([]);
+        setSelectedItems([{ kind: "mosaic", id: target.id }]);
+      }
+    }
+
     if (target.kind === "frame") {
       const alreadySelected = selectedFrameIds.includes(target.id);
 
@@ -8793,6 +8935,8 @@ useEffect(() => {
       estimatedHeight = 360;
     } else if (target.kind === "sound") {
       estimatedHeight = 320;
+    } else if (target.kind === "mosaic") {
+      estimatedHeight = 180;
     } else if (target.kind === "frame") {
       estimatedHeight = canMergeSelectedFrames(currentPage, selectedFrameIds)
         ? 300
@@ -8843,6 +8987,10 @@ useEffect(() => {
 
     if (item.kind === "sound") {
       return targetPage.sounds.some((sound) => sound.id === item.id);
+    }
+
+    if (item.kind === "mosaic") {
+      return (targetPage.mosaics ?? []).some((mosaic) => mosaic.id === item.id);
     }
 
     return false;
@@ -9447,6 +9595,10 @@ useEffect(() => {
     const isVisible = isActive || isMenuOpenForThisBar;
     const isHighlighted = isActive || isMenuOpenForThisBar;
 
+
+
+
+
     return (
       <div
         data-insert-bar="true"
@@ -9678,7 +9830,8 @@ useEffect(() => {
     return (
       selectedFrameIds.length > 0 ||
       selectedBubbleIds.length > 0 ||
-      selectedSoundIds.length > 0
+      selectedSoundIds.length > 0 ||
+      selectedMosaicIds.length > 0
     );
   }
 
@@ -9778,6 +9931,12 @@ useEffect(() => {
         .map((item) => item.id)
     );
 
+    const selectedMosaicIdSet = new Set(
+      movableItems
+        .filter((item): item is Extract<SelectedItem, { kind: "mosaic" }> => item.kind === "mosaic")
+        .map((item) => item.id)
+    );
+
     let minDx = Number.NEGATIVE_INFINITY;
     let maxDx = Number.POSITIVE_INFINITY;
     let minDy = Number.NEGATIVE_INFINITY;
@@ -9809,6 +9968,15 @@ useEffect(() => {
       maxDx = Math.min(maxDx, 95 - sound.x);
       minDy = Math.max(minDy, -sound.y);
       maxDy = Math.min(maxDy, 95 - sound.y);
+    });
+
+    (currentPage.mosaics ?? []).forEach((mosaic) => {
+      if (!selectedMosaicIdSet.has(mosaic.id)) return;
+
+      minDx = Math.max(minDx, -mosaic.x);
+      maxDx = Math.min(maxDx, 100 - (mosaic.x + mosaic.w));
+      minDy = Math.max(minDy, -mosaic.y);
+      maxDy = Math.min(maxDy, 100 - (mosaic.y + mosaic.h));
     });
 
     const safeDx = clamp(dx, minDx, maxDx);
@@ -9853,6 +10021,15 @@ useEffect(() => {
                 }
               : sound
           ),
+          mosaics: (page.mosaics ?? []).map((mosaic) =>
+            selectedMosaicIdSet.has(mosaic.id)
+              ? {
+                  ...mosaic,
+                  x: mosaic.x + safeDx,
+                  y: mosaic.y + safeDy,
+                }
+              : mosaic
+          ),
         };
       })
     );
@@ -9896,6 +10073,12 @@ useEffect(() => {
           y: sound.y - (box.height / PAGE_HEIGHT) * 50,
         };
       }),
+      ...(currentPage.mosaics ?? []).map((mosaic) => ({
+        kind: "mosaic" as const,
+        id: mosaic.id,
+        x: mosaic.x,
+        y: mosaic.y,
+      })),
     ])
       .filter((item): item is SelectedItem & { x: number; y: number } => item != null)
       .sort((a, b) => {
@@ -9970,7 +10153,8 @@ useEffect(() => {
     const hasObjectClipboard =
       (clipboardItem?.frames?.length ?? 0) > 0 ||
       (clipboardItem?.bubbles?.length ?? 0) > 0 ||
-      (clipboardItem?.sounds?.length ?? 0) > 0;
+      (clipboardItem?.sounds?.length ?? 0) > 0 ||
+    (clipboardItem?.mosaics?.length ?? 0) > 0;
 
     if (hasObjectClipboard) {
       if (!currentPage) return;
@@ -10002,6 +10186,10 @@ useEffect(() => {
           ...currentPage.sounds.map((s) => ({
             kind: "sound" as const,
             id: s.id,
+          })),
+          ...(currentPage.mosaics ?? []).map((m) => ({
+            kind: "mosaic" as const,
+            id: m.id,
           })),
         ])
       );
@@ -10059,7 +10247,8 @@ useEffect(() => {
       const hasCanvasSelection =
         selectedFrameIds.length > 0 ||
         selectedBubbleIds.length > 0 ||
-        selectedSoundIds.length > 0;
+        selectedSoundIds.length > 0 ||
+        selectedMosaicIds.length > 0;
 
       const pageShortcutTargetId =
         currentPageId != null && selectedPageIds.includes(currentPageId)
@@ -10120,6 +10309,11 @@ useEffect(() => {
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
+
+        if (selectedMosaicIds.length > 0 && selectedItems.length === selectedMosaicIds.length) {
+          clearEditorSelectionAndFocusMain();
+          return;
+        }
 
         selectCanvasItemByTab(e.shiftKey);
         return;
@@ -10336,7 +10530,8 @@ useEffect(() => {
           const hasObjectClipboard =
             (clipboardItem?.frames?.length ?? 0) > 0 ||
             (clipboardItem?.bubbles?.length ?? 0) > 0 ||
-            (clipboardItem?.sounds?.length ?? 0) > 0;
+            (clipboardItem?.sounds?.length ?? 0) > 0 ||
+    (clipboardItem?.mosaics?.length ?? 0) > 0;
 
           if (hasObjectClipboard) {
             if (!currentPage) return;
@@ -10388,6 +10583,10 @@ useEffect(() => {
                   kind: "sound" as const,
                   id: s.id,
                 })),
+                ...(currentPage.mosaics ?? []).map((m) => ({
+                  kind: "mosaic" as const,
+                  id: m.id,
+                })),
               ])
             );
 
@@ -10398,6 +10597,15 @@ useEffect(() => {
           setActiveTargetType("page");
           setSelectedPageIds(pages.map((p) => p.id));
 
+          return;
+        }
+      }
+
+      if (key === "escape") {
+        if (hasCanvasSelection) {
+          e.preventDefault();
+          e.stopPropagation();
+          clearEditorSelectionAndFocusMain();
           return;
         }
       }
@@ -10432,6 +10640,7 @@ useEffect(() => {
     selectedFrameIds,
     selectedBubbleIds,
     selectedSoundIds,
+    selectedMosaicIds,
     selectedItems,
     primarySelectedItem,
     selectedFrame,
@@ -14617,6 +14826,10 @@ function isValidMergeQuad(
               ...structuredClone(sound),
               id: nextItemId++,
             })),
+            mosaics: (page.mosaics ?? []).map((mosaic) => ({
+              ...structuredClone(mosaic),
+              id: nextItemId++,
+            })),
           };
         });
 
@@ -14715,6 +14928,7 @@ function isValidMergeQuad(
       }),
       bubbles: [],
       sounds: [],
+      mosaics: [],
     };
   };
 
@@ -14970,6 +15184,63 @@ function isValidMergeQuad(
     focusCanvasTrap();
   };
 
+
+
+  const handleAddMosaic = () => {
+    const newId = Date.now();
+    const mosaicW = 20;
+    const mosaicH = 12;
+
+    updateCurrentPage((page) => {
+      const visibleCenter = getVisiblePageCenterPercent();
+      const fallbackX = clamp(visibleCenter.x - mosaicW / 2, 0, 100 - mosaicW);
+      const fallbackY = clamp(visibleCenter.y - mosaicH / 2, 0, 100 - mosaicH);
+      const basePosition = getNextAddedMosaicPosition(
+        page,
+        lastAddedMosaicRef.current,
+        mosaicW,
+        mosaicH
+      );
+      const hasRecentMosaic =
+        lastAddedMosaicRef.current?.pageId === page.id &&
+        (page.mosaics ?? []).some((m) => m.id === lastAddedMosaicRef.current?.id);
+
+      const mosaic: Mosaic = {
+        id: newId,
+        x: hasRecentMosaic ? basePosition.x : fallbackX,
+        y: hasRecentMosaic ? basePosition.y : fallbackY,
+        w: mosaicW,
+        h: mosaicH,
+        pixelSize: 32,
+        layer: getNextMosaicLayer(page),
+        clipToFrame: true,
+      };
+
+      lastAddedMosaicRef.current = {
+        pageId: page.id,
+        id: mosaic.id,
+        x: mosaic.x,
+        y: mosaic.y,
+      };
+
+      return {
+        ...page,
+        mosaics: [...(page.mosaics ?? []), mosaic],
+      };
+    });
+
+    setSelectedItems([{ kind: "mosaic", id: newId }]);
+    setActiveTargetType("canvas");
+    setSelectedPageIds([]);
+    lastSelectedPageIdRef.current = null;
+    setDragState(null);
+    setSnapGuideLines([]);
+    trackMosaicAdd();
+    closeContextMenu();
+    focusCanvasTrap();
+  };
+
+
   const handleDeleteBubble = (bubbleId: number) => {
     updateCurrentPage((page) => ({
       ...page,
@@ -14988,6 +15259,24 @@ function isValidMergeQuad(
     if (primarySelectedItem?.kind === "sound" && primarySelectedItem.id === soundId) {
       setSelectedItems([]);
     }
+  };
+
+  const handleDeleteMosaic = (mosaicId: number) => {
+    updateCurrentPage((page) => ({
+      ...page,
+      mosaics: (page.mosaics ?? []).filter((m) => m.id !== mosaicId),
+    }));
+    if (primarySelectedItem?.kind === "mosaic" && primarySelectedItem.id === mosaicId) {
+      setSelectedItems([]);
+    }
+  };
+
+  const resetMosaicEditorControls = (mosaicId: number) => {
+    updateMosaic(mosaicId, (m) => ({
+      ...m,
+      pixelSize: 32,
+      clipToFrame: true,
+    }));
   };
 
   const handleCycleBubbleShape = (bubbleId: number) => {
@@ -15087,6 +15376,10 @@ function isValidMergeQuad(
 
     const frameClipPath = getFrameInnerClipPath(clipFrame);
 
+
+
+
+
     return (
       <div
         key={`sound-layer-${sound.id}`}
@@ -15139,6 +15432,10 @@ function isValidMergeQuad(
 
     const handlePos = getTailHandlePosition(bubble);
 
+
+
+
+
     return (
       <div
         key={`bubble-${bubble.id}`}
@@ -15156,7 +15453,7 @@ function isValidMergeQuad(
           height: `${bubble.h}%`,
           overflow: "visible",
           pointerEvents: exportMode ? "none" : "auto",
-          zIndex: draggingFrameImage != null ? 0 : 10 + (bubble.layer ?? 0),
+          zIndex: draggingFrameImage != null ? 0 : BUBBLE_LAYER_Z_BASE + (bubble.layer ?? 0),
         }}
         onMouseDown={(e) => {
           if (exportMode) return;
@@ -15373,6 +15670,10 @@ function isValidMergeQuad(
       return renderBubbleElement(page, bubble, exportMode);
     }
 
+
+
+
+
     return (
       <div
         key={`bubble-clip-${bubble.id}`}
@@ -15384,7 +15685,7 @@ function isValidMergeQuad(
           height: `${centerFrame.h}%`,
           overflow: "hidden",
           pointerEvents: "none",
-          zIndex: draggingFrameImage != null ? 0 : 10 + (bubble.layer ?? 0),
+          zIndex: draggingFrameImage != null ? 0 : BUBBLE_LAYER_Z_BASE + (bubble.layer ?? 0),
         }}
       >
         <div
@@ -15687,6 +15988,22 @@ const handleResetBubbleStyle = (bubbleId: number) => {
     );
   };
 
+  const updateMosaic = (
+    mosaicId: number,
+    updater: (mosaic: Mosaic) => Mosaic,
+    options?: { recordHistory?: boolean }
+  ) => {
+    updateCurrentPage(
+      (page) => ({
+        ...page,
+        mosaics: (page.mosaics ?? []).map((m) =>
+          m.id === mosaicId ? updater(m) : m
+        ),
+      }),
+      { recordHistory: options?.recordHistory ?? true }
+    );
+  };
+
   const startBubbleMove = (
     e: React.MouseEvent,
     bubble: Bubble
@@ -15788,6 +16105,134 @@ const handleResetBubbleStyle = (bubbleId: number) => {
         historyPushed: false,
       });
     }
+  };
+
+
+
+  const startMosaicMove = (
+    e: React.MouseEvent,
+    mosaic: Mosaic
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    closeTopToolbarMenus();
+
+    if (contextMenu.visible) {
+      closeContextMenu();
+    }
+
+    closePageMenu();
+    closePageInsertMenu();
+    focusCanvasTrap();
+
+    setActiveTargetType("canvas");
+    setSelectedPageIds([]);
+
+    const additive = e.ctrlKey || e.metaKey;
+    const alreadySelected = selectedItems.some(
+      (item) => item.kind === "mosaic" && item.id === mosaic.id
+    );
+
+    let effectiveSelection: SelectedItem[];
+
+    pendingSingleSelectOnMouseUpRef.current = null;
+
+    if (additive) {
+      if (alreadySelected) {
+        effectiveSelection = selectedItems;
+        setSelectedItems(
+          sanitizeSelectedItems(
+            selectedItems.filter(
+              (item) => !(item.kind === "mosaic" && item.id === mosaic.id)
+            )
+          )
+        );
+      } else {
+        effectiveSelection = sanitizeSelectedItems([
+          ...selectedItems,
+          { kind: "mosaic", id: mosaic.id },
+        ]);
+        setSelectedItems(effectiveSelection);
+      }
+    } else if (alreadySelected && selectedItems.length > 1) {
+      effectiveSelection = selectedItems;
+      setPendingSingleSelectOnMouseUp({ kind: "mosaic", id: mosaic.id }, e);
+    } else {
+      effectiveSelection = [{ kind: "mosaic", id: mosaic.id }];
+      setSelectedItems(effectiveSelection);
+    }
+
+    const rect = getPageRect();
+    if (!rect || !currentPage) return;
+
+    const mouseXPercent = ((e.clientX - rect.left) / rect.width) * 100;
+    const mouseYPercent = ((e.clientY - rect.top) / rect.height) * 100;
+
+    if (effectiveSelection.length === 1) {
+      setDragState({
+        kind: "bubble-move",
+        items: buildDragItemsFromSelection(effectiveSelection, currentPage)
+          .filter((item) => item.kind === "bubble" || item.kind === "sound" || item.kind === "mosaic")
+          .map(({ kind, id, startX, startY }) => ({ kind, id, startX, startY })),
+        anchorKind: "mosaic",
+        anchorId: mosaic.id,
+        offsetX: mouseXPercent - mosaic.x,
+        offsetY: mouseYPercent - mosaic.y,
+        copyGhost: buildDragCopyGhostFromSelection(effectiveSelection, currentPage),
+        hasMoved: false,
+        historyPushed: false,
+      });
+    } else {
+      setDragState({
+        kind: "multi-move",
+        items: buildDragItemsFromSelection(effectiveSelection, currentPage).map(
+          ({ kind, id, startX, startY }) => ({ kind, id, startX, startY })
+        ),
+        anchorKind: "mosaic",
+        anchorId: mosaic.id,
+        offsetX: mouseXPercent - mosaic.x,
+        offsetY: mouseYPercent - mosaic.y,
+        copyGhost: buildDragCopyGhostFromSelection(effectiveSelection, currentPage),
+        hasMoved: false,
+        historyPushed: false,
+      });
+    }
+  };
+
+  const startMosaicResize = (
+    e: React.MouseEvent,
+    mosaic: Mosaic,
+    resizeMode:
+      | "left"
+      | "right"
+      | "top"
+      | "bottom"
+      | "top-left"
+      | "top-right"
+      | "bottom-left"
+      | "bottom-right"
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    closeTopToolbarMenus();
+    focusCanvasTrap();
+    selectMosaic(mosaic.id);
+
+    setDragState({
+      kind: "mosaic-resize",
+      id: mosaic.id,
+      resizeMode,
+      startMouseX: e.clientX,
+      startMouseY: e.clientY,
+      startX: mosaic.x,
+      startY: mosaic.y,
+      startW: mosaic.w,
+      startH: mosaic.h,
+      hasMoved: false,
+      historyPushed: false,
+    });
   };
 
   const startBubbleTail = (
@@ -16537,6 +16982,18 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                     ...sound,
                     x: item.startX + base.dx,
                     y: item.startY + base.dy,
+                  };
+                }),
+                mosaics: (page.mosaics ?? []).map((mosaic) => {
+                  const item = dragState.items.find(
+                    (x) => x.kind === "mosaic" && x.id === mosaic.id
+                  );
+                  if (!item) return mosaic;
+
+                  return {
+                    ...mosaic,
+                    x: clamp(item.startX + base.dx, 0, 100 - mosaic.w),
+                    y: clamp(item.startY + base.dy, 0, 100 - mosaic.h),
                   };
                 }),
               }
@@ -17425,6 +17882,18 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                     y: clamp(dragItem.startY + dy, 0, 95),
                   };
                 }),
+                mosaics: (page.mosaics ?? []).map((m) => {
+                  const dragItem = dragState.items.find(
+                    (item) => item.kind === "mosaic" && item.id === m.id
+                  );
+                  if (!dragItem) return m;
+
+                  return {
+                    ...m,
+                    x: clamp(dragItem.startX + dx, 0, 100 - m.w),
+                    y: clamp(dragItem.startY + dy, 0, 100 - m.h),
+                  };
+                }),
               }
             : page
         ),
@@ -17725,6 +18194,115 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                     y: clamp(dragItem.startY + dy, 0, 95),
                   };
                 }),
+                mosaics: (page.mosaics ?? []).map((m) => {
+                  const dragItem = dragState.items.find(
+                    (item) => item.kind === "mosaic" && item.id === m.id
+                  );
+                  if (!dragItem) return m;
+
+                  return {
+                    ...m,
+                    x: clamp(dragItem.startX + dx, 0, 100 - m.w),
+                    y: clamp(dragItem.startY + dy, 0, 100 - m.h),
+                  };
+                }),
+              }
+            : page
+        ),
+      { recordHistory: false }
+    );
+  };
+
+
+
+  const handleMosaicResizeDrag = ({
+    dragState,
+    currentPage,
+    currentPageId,
+    rect,
+    e,
+    applyPagesChange,
+    ensureDragHistory,
+  }: {
+    dragState: Extract<DragState, { kind: "mosaic-resize" }>;
+    currentPage: Page;
+    currentPageId: number;
+    rect: DOMRect;
+    e: MouseEvent | React.MouseEvent<HTMLDivElement>;
+    applyPagesChange: (
+      updater: Page[] | ((prev: Page[]) => Page[]),
+      options?: { recordHistory?: boolean }
+    ) => void;
+    ensureDragHistory: () => void;
+  }) => {
+    const mosaic = (currentPage.mosaics ?? []).find((m) => m.id === dragState.id);
+    if (!mosaic) return;
+
+    const dx = ((e.clientX - dragState.startMouseX) / rect.width) * 100;
+    const dy = ((e.clientY - dragState.startMouseY) / rect.height) * 100;
+
+    let nextX = dragState.startX;
+    let nextY = dragState.startY;
+    let nextW = dragState.startW;
+    let nextH = dragState.startH;
+
+    if (dragState.resizeMode.includes("left")) {
+      nextX = dragState.startX + dx;
+      nextW = dragState.startW - dx;
+    }
+    if (dragState.resizeMode.includes("right")) {
+      nextW = dragState.startW + dx;
+    }
+    if (dragState.resizeMode.includes("top")) {
+      nextY = dragState.startY + dy;
+      nextH = dragState.startH - dy;
+    }
+    if (dragState.resizeMode.includes("bottom")) {
+      nextH = dragState.startH + dy;
+    }
+
+    const minSize = 2;
+    if (nextW < minSize) {
+      if (dragState.resizeMode.includes("left")) nextX -= minSize - nextW;
+      nextW = minSize;
+    }
+    if (nextH < minSize) {
+      if (dragState.resizeMode.includes("top")) nextY -= minSize - nextH;
+      nextH = minSize;
+    }
+
+    nextX = clamp(nextX, 0, 100 - nextW);
+    nextY = clamp(nextY, 0, 100 - nextH);
+    nextW = clamp(nextW, minSize, 100 - nextX);
+    nextH = clamp(nextH, minSize, 100 - nextY);
+
+    if (e.shiftKey) {
+      nextX = snapToGridPercent(nextX);
+      nextY = snapToGridPercent(nextY);
+      nextW = clamp(snapToGridPercent(nextW), minSize, 100 - nextX);
+      nextH = clamp(snapToGridPercent(nextH), minSize, 100 - nextY);
+    }
+
+    const moved =
+      Math.abs(nextX - mosaic.x) > 0.001 ||
+      Math.abs(nextY - mosaic.y) > 0.001 ||
+      Math.abs(nextW - mosaic.w) > 0.001 ||
+      Math.abs(nextH - mosaic.h) > 0.001;
+    if (!moved) return;
+
+    ensureDragHistory();
+
+    applyPagesChange(
+      (prev) =>
+        prev.map((page) =>
+          page.id === currentPageId
+            ? {
+                ...page,
+                mosaics: (page.mosaics ?? []).map((m) =>
+                  m.id === dragState.id
+                    ? { ...m, x: nextX, y: nextY, w: nextW, h: nextH }
+                    : m
+                ),
               }
             : page
         ),
@@ -18370,6 +18948,19 @@ const handleResetBubbleStyle = (bubbleId: number) => {
       return;
     }
 
+    if (dragState.kind === "mosaic-resize") {
+      handleMosaicResizeDrag({
+        dragState,
+        currentPage,
+        currentPageId,
+        rect,
+        e,
+        applyPagesChange,
+        ensureDragHistory,
+      });
+      return;
+    }
+
     if (dragState.kind === "sound-resize") {
       handleSoundResizeDrag({
         dragState,
@@ -18869,6 +19460,13 @@ const handleResetBubbleStyle = (bubbleId: number) => {
             id: nextGhostId(),
           })),
         ],
+        mosaics: [
+          ...(page.mosaics ?? []),
+          ...dragState.copyGhost.mosaics.map((mosaic) => ({
+            ...structuredClone(mosaic),
+            id: nextGhostId(),
+          })),
+        ],
       };
     }
 
@@ -18880,7 +19478,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
       sortedBubbles.map((bubble, index) => [bubble.id, index])
     );
     const getBubblePartZIndex = (partOrder: number, bubble: Bubble) =>
-      partOrder * bubbleLayerStep + (bubbleLayerIndexMap.get(bubble.id) ?? 0);
+      BUBBLE_LAYER_Z_BASE + partOrder * bubbleLayerStep + (bubbleLayerIndexMap.get(bubble.id) ?? 0);
 
     const editableFrameLayerIds = page.frames
       .filter((frame) => !isProtectedCoverBaseFrame(page, frame))
@@ -19289,7 +19887,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
         );
       }
 
-      const frameClipPath = getBubbleFrameClipPath(clipFrame);
+      const frameClipPath = getFrameInnerClipPath(clipFrame);
 
       return (
         <div
@@ -19748,6 +20346,309 @@ const handleResetBubbleStyle = (bubbleId: number) => {
         .join("\n");
     };
 
+
+
+    const getMosaicPixelSize = (pixelSize: Mosaic["pixelSize"]) => {
+      return clamp(Math.round(Number(pixelSize) || 32), 1, 64);
+    };
+
+    const renderMosaicElement = (mosaic: Mosaic) => {
+      const normalized = normalizeMosaic(mosaic, 0);
+      const isDragCopyGhostMosaic = isDragCopyGhostId(normalized.id);
+      const isSelected =
+        !isDragCopyGhostMosaic &&
+        selectedItems.some(
+          (item) => item.kind === "mosaic" && item.id === normalized.id
+        );
+      const pixelSize = getMosaicPixelSize(normalized.pixelSize);
+      const drawMosaicPreview = (canvas: HTMLCanvasElement | null) => {
+        if (!canvas) return;
+
+        const width = Math.max(1, Math.round((PAGE_WIDTH * normalized.w) / 100));
+        const height = Math.max(1, Math.round((PAGE_HEIGHT * normalized.h) / 100));
+        const pageLeft = (PAGE_WIDTH * normalized.x) / 100;
+        const pageTop = (PAGE_HEIGHT * normalized.y) / 100;
+        const ctx = canvas.getContext("2d");
+
+        if (canvas.width !== width) canvas.width = width;
+        if (canvas.height !== height) canvas.height = height;
+
+        if (!ctx) return;
+
+        const sourceCanvas = document.createElement("canvas");
+        sourceCanvas.width = width;
+        sourceCanvas.height = height;
+
+        const sourceCtx = sourceCanvas.getContext("2d");
+        if (!sourceCtx) return;
+
+        const drawMosaicFallbackCheckerboard = () => {
+          const blockSize = Math.max(1, pixelSize);
+
+          sourceCtx.fillStyle = "#ffffff";
+          sourceCtx.fillRect(0, 0, width, height);
+          sourceCtx.fillStyle = "#111827";
+
+          for (let y = 0; y < height; y += blockSize) {
+            for (let x = 0; x < width; x += blockSize) {
+              if (((Math.floor(x / blockSize) + Math.floor(y / blockSize)) % 2) !== 0) {
+                continue;
+              }
+
+              sourceCtx.fillRect(x, y, blockSize, blockSize);
+            }
+          }
+        };
+
+        const drawableFrames = getEditableFrames(page.frames)
+          .filter((frame) => getFrameImageSrc(frame))
+          .sort((a, b) => getFrameDisplayZIndex(a) - getFrameDisplayZIndex(b));
+
+        let cancelled = false;
+
+        Promise.all(
+          drawableFrames.map(async (frame) => {
+            const src = getFrameImageSrc(frame);
+            if (!src) return null;
+
+            const mosaicRight = normalized.x + normalized.w;
+            const mosaicBottom = normalized.y + normalized.h;
+            const frameRight = frame.x + frame.w;
+            const frameBottom = frame.y + frame.h;
+            const intersectsMosaic =
+              mosaicRight > frame.x &&
+              normalized.x < frameRight &&
+              mosaicBottom > frame.y &&
+              normalized.y < frameBottom;
+
+            if (!intersectsMosaic) return null;
+
+            try {
+              const image = await loadImageElement(src, APP_ERROR.PDF_RENDER);
+              return { frame, image };
+            } catch {
+              return null;
+            }
+          })
+        ).then((items) => {
+          if (cancelled) return;
+
+          const drawableItems = items.filter(
+            (item): item is { frame: Frame; image: HTMLImageElement } => item != null
+          );
+
+          sourceCtx.clearRect(0, 0, width, height);
+
+          if (drawableItems.length === 0) {
+            drawMosaicFallbackCheckerboard();
+          }
+
+          for (const item of drawableItems) {
+            const { frame, image } = item;
+            const metrics = getFrameImageMetrics(frame);
+            const frameLeft = (PAGE_WIDTH * frame.x) / 100;
+            const frameTop = (PAGE_HEIGHT * frame.y) / 100;
+            const imageLeft = frameLeft + metrics.imageLeft - pageLeft;
+            const imageTop = frameTop + metrics.imageTop - pageTop;
+            const imageW = metrics.renderedImageW;
+            const imageH = metrics.renderedImageH;
+            const polygon = getFramePolygonPointsAbsolute(frame);
+
+            sourceCtx.save();
+            sourceCtx.beginPath();
+            polygon.forEach((point, index) => {
+              const x = (PAGE_WIDTH * point.x) / 100 - pageLeft;
+              const y = (PAGE_HEIGHT * point.y) / 100 - pageTop;
+
+              if (index === 0) {
+                sourceCtx.moveTo(x, y);
+              } else {
+                sourceCtx.lineTo(x, y);
+              }
+            });
+            sourceCtx.closePath();
+            sourceCtx.clip();
+
+            sourceCtx.save();
+            sourceCtx.translate(imageLeft + imageW / 2, imageTop + imageH / 2);
+            sourceCtx.scale(hasFrameImageFlipX(frame) ? -1 : 1, hasFrameImageFlipY(frame) ? -1 : 1);
+            sourceCtx.drawImage(image, -imageW / 2, -imageH / 2, imageW, imageH);
+            sourceCtx.restore();
+            sourceCtx.restore();
+          }
+
+          const blockSize = Math.max(1, pixelSize);
+          const tempWidth = Math.max(1, Math.ceil(width / blockSize));
+          const tempHeight = Math.max(1, Math.ceil(height / blockSize));
+          const tempCanvas = document.createElement("canvas");
+          tempCanvas.width = tempWidth;
+          tempCanvas.height = tempHeight;
+
+          const tempCtx = tempCanvas.getContext("2d");
+          if (!tempCtx) return;
+
+          tempCtx.imageSmoothingEnabled = true;
+          tempCtx.drawImage(sourceCanvas, 0, 0, width, height, 0, 0, tempWidth, tempHeight);
+
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(tempCanvas, 0, 0, tempWidth, tempHeight, 0, 0, width, height);
+          ctx.imageSmoothingEnabled = true;
+        });
+
+        return () => {
+          cancelled = true;
+        };
+      };
+      const handleBaseStyle: React.CSSProperties = {
+        position: "absolute",
+        width: 12,
+        height: 12,
+        borderRadius: 3,
+        border: "2px solid #2563eb",
+        background: "#ffffff",
+        boxSizing: "border-box",
+        pointerEvents: "auto",
+        zIndex: 4,
+      };
+      const handles = [
+        { mode: "top-left" as const, left: 0, top: 0, cursor: "nwse-resize" },
+        { mode: "top" as const, left: 50, top: 0, cursor: "ns-resize" },
+        { mode: "top-right" as const, left: 100, top: 0, cursor: "nesw-resize" },
+        { mode: "right" as const, left: 100, top: 50, cursor: "ew-resize" },
+        { mode: "bottom-right" as const, left: 100, top: 100, cursor: "nwse-resize" },
+        { mode: "bottom" as const, left: 50, top: 100, cursor: "ns-resize" },
+        { mode: "bottom-left" as const, left: 0, top: 100, cursor: "nesw-resize" },
+        { mode: "left" as const, left: 0, top: 50, cursor: "ew-resize" },
+      ];
+
+      const renderMosaicBox = ({
+        left,
+        top,
+        width,
+        height,
+      }: {
+        left: string;
+        top: string;
+        width: string;
+        height: string;
+      }) => (
+        <div
+          data-canvas-focus-object="true"
+          data-canvas-object-type="mosaic"
+          data-canvas-object-id={String(normalized.id)}
+          data-mansaku-mosaic-export-overlay="true"
+          data-canvas-object-x={String(normalized.x)}
+          data-canvas-object-y={String(normalized.y)}
+          tabIndex={-1}
+          onMouseDown={exportMode || isDragCopyGhostMosaic ? undefined : (e) => startMosaicMove(e, normalized)}
+          onContextMenu={
+            exportMode || isDragCopyGhostMosaic
+              ? undefined
+              : (e) => openContextMenu(e, { kind: "mosaic", id: normalized.id })
+          }
+          style={{
+            position: "absolute",
+            left,
+            top,
+            width,
+            height,
+            overflow: "hidden",
+            cursor: exportMode ? "default" : "move",
+            pointerEvents: exportMode || isDragCopyGhostMosaic ? "none" : "auto",
+            zIndex: draggingFrameImage != null ? 0 : MOSAIC_LAYER_Z_BASE + (normalized.layer ?? 0),
+            opacity: isDragCopyGhostMosaic ? 0.38 : 1,
+            boxSizing: "border-box",
+            outline: !exportMode && isSelected ? "2px solid #2563eb" : "none",
+            outlineOffset: 0,
+          }}
+        >
+          <canvas
+            ref={(canvas) => {
+              drawMosaicPreview(canvas);
+            }}
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              display: "block",
+              imageRendering: "pixelated",
+              pointerEvents: "none",
+            }}
+          />
+
+          {!exportMode && isSelected && !isMultiSelected && (
+            <>
+              {handles.map((handle) => (
+                <div
+                  key={`mosaic-resize-${normalized.id}-${handle.mode}`}
+                  onContextMenu={suppressHandleContextMenu}
+                  onMouseDown={(e) => startMosaicResize(e, normalized, handle.mode)}
+                  style={{
+                    ...handleBaseStyle,
+                    left: `${handle.left}%`,
+                    top: `${handle.top}%`,
+                    transform: "translate(-50%, -50%)",
+                    cursor: handle.cursor,
+                  }}
+                />
+              ))}
+            </>
+          )}
+        </div>
+      );
+
+      const centerFrame = getBubbleCenterFrame(page, normalized as unknown as Bubble);
+      const clipFrame =
+        centerFrame && !isInnerLockedFrame(centerFrame) ? centerFrame : null;
+      const shouldClip =
+        (normalized.clipToFrame ?? true) &&
+        !!clipFrame &&
+        clipFrame.borderEnabled;
+
+      if (!shouldClip || !clipFrame) {
+        return (
+          <div key={`mosaic-${normalized.id}`}>
+            {renderMosaicBox({
+              left: `${normalized.x}%`,
+              top: `${normalized.y}%`,
+              width: `${normalized.w}%`,
+              height: `${normalized.h}%`,
+            })}
+          </div>
+        );
+      }
+
+      const frameClipPath = getBubbleFrameClipPath(clipFrame);
+
+      return (
+        <div
+          key={`mosaic-${normalized.id}`}
+          style={{
+            position: "absolute",
+            left: `${clipFrame.x}%`,
+            top: `${clipFrame.y}%`,
+            width: `${clipFrame.w}%`,
+            height: `${clipFrame.h}%`,
+            overflow: "hidden",
+            clipPath: frameClipPath,
+            WebkitClipPath: frameClipPath,
+            pointerEvents: "none",
+            zIndex: draggingFrameImage != null ? 0 : MOSAIC_LAYER_Z_BASE + (normalized.layer ?? 0),
+            opacity: isDragCopyGhostMosaic ? 0.38 : 1,
+          }}
+        >
+          {renderMosaicBox({
+            left: `${((normalized.x - clipFrame.x) / clipFrame.w) * 100}%`,
+            top: `${((normalized.y - clipFrame.y) / clipFrame.h) * 100}%`,
+            width: `${(normalized.w / clipFrame.w) * 100}%`,
+            height: `${(normalized.h / clipFrame.h) * 100}%`,
+          })}
+        </div>
+      );
+    };
+
+
     return (
       <div
         ref={refCallback}
@@ -20052,8 +20953,6 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                     }}
                   />
                 )}
-
-                <FrameEffectLineLayer frame={frame} />
               </div>
 
               {!exportMode &&
@@ -20229,6 +21128,36 @@ const handleResetBubbleStyle = (bubbleId: number) => {
             </div>
           );
         })}
+
+
+        {(page.mosaics ?? [])
+          .map((mosaic, index) => normalizeMosaic(mosaic, index))
+          .sort((a, b) => (a.layer ?? 0) - (b.layer ?? 0))
+          .map((mosaic) => renderMosaicElement(mosaic))}
+
+        {getEditableFrames(page.frames).map((frame, index) => (
+          <div
+            key={`effect-line-layer-${frame.id}`}
+            style={{
+              position: "absolute",
+              left: `${frame.x}%`,
+              top: `${frame.y}%`,
+              width: `${frame.w}%`,
+              height: `${frame.h}%`,
+              overflow: "hidden",
+              clipPath: frame.borderEnabled
+                ? getFrameInnerClipPath(frame)
+                : getFrameClipPath(frame),
+              WebkitClipPath: frame.borderEnabled
+                ? getFrameInnerClipPath(frame)
+                : getFrameClipPath(frame),
+              pointerEvents: "none",
+              zIndex: draggingFrameImage != null ? 0 : EFFECT_LINE_LAYER_Z_BASE + index,
+            }}
+          >
+            <FrameEffectLineLayer frame={frame} />
+          </div>
+        ))}
 
         {/* 1. 輪郭アリの吹出 */}
         {sortedBubbles.map((bubble) => {
@@ -21615,14 +22544,28 @@ const handleResetBubbleStyle = (bubbleId: number) => {
     );
   };
 
-  const loadImageElement = (dataUrl: string) => {
+  const loadImageElement = (dataUrl: string, errorCode: AppErrorCode = APP_ERROR.PDF_RENDER) => {
     return new Promise<HTMLImageElement>((resolve, reject) => {
       const image = new Image();
 
       image.onload = () => resolve(image);
-      image.onerror = () => reject(createAppError(APP_ERROR.PDF_RENDER));
+      image.onerror = () => reject(createAppError(errorCode));
       image.src = dataUrl;
     });
+  };
+
+  const renderPageToPngDataUrl = async (
+    page: Page,
+    el: HTMLElement,
+    pixelRatio: number,
+    errorCode: AppErrorCode
+  ) => {
+    const dataUrl = await htmlToImage.toPng(el, {
+      pixelRatio,
+      cacheBust: true,
+    });
+
+    return dataUrl;
   };
 
   const updateExportProgress = (label: string, current: number, total: number) => {
@@ -21752,10 +22695,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
         let dataUrl: string;
 
         try {
-          dataUrl = await htmlToImage.toPng(el, {
-            pixelRatio,
-            cacheBust: true,
-          });
+          dataUrl = await renderPageToPngDataUrl(page, el, pixelRatio, APP_ERROR.PDF_RENDER);
 
           console.log("PDF render page image created", i + 1, dataUrl.length);
         } catch (error) {
@@ -21936,10 +22876,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
         let dataUrl: string;
 
         try {
-          dataUrl = await htmlToImage.toPng(el, {
-            pixelRatio,
-            cacheBust: true,
-          });
+          dataUrl = await renderPageToPngDataUrl(page, el, pixelRatio, APP_ERROR.PNG_RENDER);
         } catch (error) {
           console.error(error);
           throw createAppError(APP_ERROR.PNG_RENDER);
@@ -23117,6 +24054,12 @@ const handleResetBubbleStyle = (bubbleId: number) => {
               <ToolbarIconButton title={t("addSound")} onClick={handleAddSound}>
                 <span style={{ display: "inline-flex", gap: 0, transform: "scale(0.92)" }}>
                   <DrawnTextAddSvgIcon />
+                </span>
+              </ToolbarIconButton>
+
+              <ToolbarIconButton title={t("addMosaic")} onClick={handleAddMosaic}>
+                <span style={{ display: "inline-flex", gap: 0, transform: "scale(0.92)" }}>
+                  <MosaicAddSvgIcon />
                 </span>
               </ToolbarIconButton>
 
@@ -24642,6 +25585,108 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                       </div>
                     )}
 
+
+
+                    {selectedMosaic && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
+                          <ToolbarIconButton
+                            title={t("reset")}
+                            dataFocusRole="editor-reset"
+                            onClick={() => {
+                              resetMosaicEditorControls(selectedMosaic.id);
+                            }}
+                          >
+                            <ResetSvgIcon />
+                          </ToolbarIconButton>
+
+                          <ToolbarIconButton
+                            title={t("delete")}
+                            dataFocusRole="editor-delete"
+                            onClick={() => {
+                              handleDeleteMosaic(selectedMosaic.id);
+                              clearEditorSelectionAndFocusMain();
+                            }}
+                            style={{ color: "#b91c1c" }}
+                          >
+                            <TrashSvgIcon />
+                          </ToolbarIconButton>
+
+                          <ToolbarIconButton title={t("close")} dataFocusRole="editor-close" onClick={() => clearEditorSelectionAndFocusMain()}>
+                            <CloseSvgIcon />
+                          </ToolbarIconButton>
+                        </div>
+
+                        <h3
+                          style={{
+                            margin: 0,
+                            marginBottom: 6,
+                            marginLeft: 6,
+                            color: "#1f2937",
+                          }}
+                        >
+                          {t("mosaicEditor")}
+                        </h3>
+
+                        <div>
+                          <CollapsibleEditorSection sectionKey="mosaic-settings" title={t("mosaicStrength")} openSectionKey={openEditorSectionKey} setOpenSectionKey={setOpenEditorSectionKey}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <input
+                                id="mansaku-slider-mosaic-pixel-size"
+                                className="mansaku-range-slider"
+                                type="range"
+                                title={t("mosaicStrength")}
+                                aria-label={t("mosaicStrength")}
+                                min={1}
+                                max={64}
+                                step={1}
+                                value={clamp(Math.round(Number(selectedMosaic.pixelSize) || 32), 1, 64)}
+                                onPointerDown={() => {
+                                  pushHistorySnapshot();
+                                }}
+                                onChange={(e) => {
+                                  const value = clamp(Number(e.target.value), 1, 64);
+                                  updateMosaic(
+                                    selectedMosaic.id,
+                                    (m) => ({
+                                      ...m,
+                                      pixelSize: value,
+                                    }),
+                                    { recordHistory: false }
+                                  );
+                                }}
+                                style={{ ...sliderInputStyle, flex: 1 }}
+                              />
+
+                              <span style={sliderValueLabelStyle}>
+                                {clamp(Math.round(Number(selectedMosaic.pixelSize) || 32), 1, 64)}px
+                              </span>
+                            </div>
+                          </CollapsibleEditorSection>
+                        </div>
+
+                        <div>
+                          <CollapsibleEditorSection sectionKey="mosaic-overflow" title={t("hideOverflow")} openSectionKey={openEditorSectionKey} setOpenSectionKey={setOpenEditorSectionKey}>
+                            {(() => {
+                              const outsideOverflowEnabled = !(selectedMosaic.clipToFrame ?? true);
+
+                              return (
+                                <EditorSwitchButton
+                                  checked={outsideOverflowEnabled}
+                                  onToggle={() => {
+                                    updateMosaic(selectedMosaic.id, (m) => ({
+                                      ...m,
+                                      clipToFrame: outsideOverflowEnabled,
+                                    }));
+                                  }}
+                                />
+                              );
+                            })()}
+                          </CollapsibleEditorSection>
+                        </div>
+                      </div>
+                    )}
+
                     {selectedFrame && (
                       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
 
@@ -25999,6 +27044,9 @@ onClick={(e) => {
         const soundTarget =
           contextMenu.target?.kind === "sound" ? contextMenu.target : null;
 
+        const mosaicTarget =
+          contextMenu.target?.kind === "mosaic" ? contextMenu.target : null;
+
         const frameTarget =
           contextMenu.target?.kind === "frame" ? contextMenu.target : null;
 
@@ -26010,6 +27058,11 @@ onClick={(e) => {
         const contextMenuSound =
           soundTarget
             ? currentPage?.sounds.find((s) => s.id === soundTarget.id) ?? null
+            : null;
+
+        const contextMenuMosaic =
+          mosaicTarget
+            ? currentPage?.mosaics?.find((m) => m.id === mosaicTarget.id) ?? null
             : null;
 
         const contextMenuFrame =
@@ -26059,6 +27112,7 @@ onClick={(e) => {
             | "sound-layer"
             | "bubble-type"
             | "sound-color"
+            | "mosaic-layer"
         ) =>
           stickySubmenuKey === key
             ? {
@@ -26077,6 +27131,8 @@ onClick={(e) => {
             ? `bubble-${contextMenu.target.id}`
             : contextMenu.target?.kind === "sound"
             ? `sound-${contextMenu.target.id}`
+            : contextMenu.target?.kind === "mosaic"
+            ? `mosaic-${contextMenu.target.id}`
             : "none";
 
         return (
@@ -26831,6 +27887,81 @@ onClick={(e) => {
                 </>
               )}
 
+
+
+              {mosaicTarget && contextMenuMosaic && (
+                <>
+                  <ContextMenuButton
+                    onClick={() => {
+                      handleCutSelection();
+                      closeContextMenuAndFocusReturnTarget(contextMenu.target);
+                    }}
+                    style={menuButtonStyle}
+                  >
+                    {t("cut")}
+                  </ContextMenuButton>
+
+                  <ContextMenuButton
+                    onClick={() => {
+                      handleCopySelection();
+                      closeContextMenuAndFocusReturnTarget(contextMenu.target);
+                    }}
+                    style={menuButtonStyle}
+                  >
+                    {t("copy")}
+                  </ContextMenuButton>
+
+                  <ContextMenuButton
+                    onClick={() => {
+                      if (contextMenu.pageXPercent == null || contextMenu.pageYPercent == null) {
+                        return;
+                      }
+
+                      handlePasteSelection({
+                        xPercent: contextMenu.pageXPercent,
+                        yPercent: contextMenu.pageYPercent,
+                      });
+                      closeContextMenuAndFocusReturnTarget(contextMenu.target);
+                    }}
+                    disabled={
+                      !hasClipboardContent ||
+                      contextMenu.pageXPercent == null ||
+                      contextMenu.pageYPercent == null
+                    }
+                    style={{
+                      ...menuButtonStyle,
+                      cursor:
+                        hasClipboardContent &&
+                        contextMenu.pageXPercent != null &&
+                        contextMenu.pageYPercent != null
+                          ? "pointer"
+                          : "default",
+                      opacity:
+                        hasClipboardContent &&
+                        contextMenu.pageXPercent != null &&
+                        contextMenu.pageYPercent != null
+                          ? 1
+                          : 0.45,
+                    }}
+                  >
+                    {getClipboardPasteLabel()}
+                  </ContextMenuButton>
+
+                  <ContextMenuButton
+                    onClick={() => {
+                      handleDeleteMosaic(contextMenuMosaic.id);
+                      closeContextMenuAndFocusReturnTarget(null);
+                    }}
+                    style={{
+                      ...menuButtonStyle,
+                      color: "#b91c1c",
+                    }}
+                  >
+                    {t("delete")}
+                  </ContextMenuButton>
+                </>
+              )}
+
           </ContextMenuLayer>
         );
       })()}
@@ -26935,6 +28066,10 @@ onClick={(e) => {
             >
               <span>{t("paste")}</span>
             </ContextMenuButton>
+
+
+
+
           </ContextMenuLayer>
         );
       })()}
@@ -27049,6 +28184,10 @@ onClick={(e) => {
                 <span>{t("delete")}</span>
               </ContextMenuButton>
             )}
+
+
+
+
           </ContextMenuLayer>
         );
       })()}

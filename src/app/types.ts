@@ -108,6 +108,7 @@ export type ClipboardItem =
       mode: "copy" | "cut";
       bubbles?: Bubble[];
       sounds?: SoundText[];
+      mosaics?: Mosaic[];
       frames?: Frame[];
     }
   | null;
@@ -134,12 +135,25 @@ export type SoundText = {
   clipToFrame?: boolean;
 };
 
+
+export type Mosaic = {
+  id: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  pixelSize: number;
+  layer: number;
+  clipToFrame?: boolean;
+};
+
 export type Page = {
   id: number;
   visible?: boolean;
   frames: Frame[];
   bubbles: Bubble[];
   sounds: SoundText[];
+  mosaics: Mosaic[];
 };
 
 export type ProjectData = {
@@ -153,6 +167,7 @@ export type ProjectData = {
 export type SelectedTarget =
   | { kind: "bubble"; id: number }
   | { kind: "sound"; id: number }
+  | { kind: "mosaic"; id: number }
   | null;
 
 export type DragState =
@@ -229,12 +244,12 @@ export type DragState =
   | {
       kind: "multi-move";
       items: Array<{
-        kind: "frame" | "bubble" | "sound";
+        kind: "frame" | "bubble" | "sound" | "mosaic";
         id: number;
         startX: number;
         startY: number;
       }>;
-      anchorKind: "frame" | "bubble" | "sound";
+      anchorKind: "frame" | "bubble" | "sound" | "mosaic";
       anchorId: number;
       offsetX: number;
       offsetY: number;
@@ -242,6 +257,7 @@ export type DragState =
         frames: Frame[];
         bubbles: Bubble[];
         sounds: SoundText[];
+        mosaics: Mosaic[];
       };
       hasMoved: boolean;
       historyPushed: boolean;
@@ -249,12 +265,12 @@ export type DragState =
   | {
       kind: "bubble-move";
       items: Array<{
-        kind: "bubble" | "sound";
+        kind: "bubble" | "sound" | "mosaic";
         id: number;
         startX: number;
         startY: number;
       }>;
-      anchorKind: "bubble" | "sound";
+      anchorKind: "bubble" | "sound" | "mosaic";
       anchorId: number;
       offsetX: number;
       offsetY: number;
@@ -262,6 +278,7 @@ export type DragState =
         frames: Frame[];
         bubbles: Bubble[];
         sounds: SoundText[];
+        mosaics: Mosaic[];
       };
       hasMoved: boolean;
       historyPushed: boolean;
@@ -302,12 +319,12 @@ export type DragState =
   | {
       kind: "sound-move";
       items: Array<{
-        kind: "bubble" | "sound";
+        kind: "bubble" | "sound" | "mosaic";
         id: number;
         startX: number;
         startY: number;
       }>;
-      anchorKind: "bubble" | "sound";
+      anchorKind: "bubble" | "sound" | "mosaic";
       anchorId: number;
       offsetX: number;
       offsetY: number;
@@ -315,7 +332,30 @@ export type DragState =
         frames: Frame[];
         bubbles: Bubble[];
         sounds: SoundText[];
+        mosaics: Mosaic[];
       };
+      hasMoved: boolean;
+      historyPushed: boolean;
+    }
+
+  | {
+      kind: "mosaic-resize";
+      id: number;
+      resizeMode:
+        | "left"
+        | "right"
+        | "top"
+        | "bottom"
+        | "top-left"
+        | "top-right"
+        | "bottom-left"
+        | "bottom-right";
+      startMouseX: number;
+      startMouseY: number;
+      startX: number;
+      startY: number;
+      startW: number;
+      startH: number;
       hasMoved: boolean;
       historyPushed: boolean;
     }
@@ -361,6 +401,7 @@ export type ContextMenuTarget =
   | { kind: "canvas" }
   | { kind: "bubble"; id: number }
   | { kind: "sound"; id: number }
+  | { kind: "mosaic"; id: number }
   | { kind: "frame"; id: number };
 
 export type ContextMenuState =

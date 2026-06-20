@@ -273,6 +273,22 @@ export function HelpModal({ onClose, language }: HelpModalProps) {
       ),
     },
     {
+      id: "mosaics",
+      title: t("help.mosaics.title"),
+      body: (
+        <HelpCard title={t("help.mosaics.title")}>
+          <ul style={listStyle}>
+            <li>{t("help.mosaics.add")}</li>
+            <li>{t("help.mosaics.editor")}</li>
+            <li>{t("help.mosaics.pixelSize")}</li>
+            <li>{t("help.mosaics.overflow")}</li>
+            <li>{t("help.mosaics.fallback")}</li>
+            <li>{t("help.mosaics.shortcuts")}</li>
+          </ul>
+        </HelpCard>
+      ),
+    },
+    {
       id: "layer",
       title: t("help.layer.title"),
       body: (
