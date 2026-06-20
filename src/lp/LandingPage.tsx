@@ -312,6 +312,24 @@ export function LandingPage() {
     },
   ];
 
+  const sampleWorks = [
+    {
+      title: t("lpSampleComedyTitle"),
+      image: "/images/lp/Comedy.webp",
+      alt: t("lpSampleComedyAlt"),
+    },
+    {
+      title: t("lpSampleFantasyTitle"),
+      image: "/images/lp/Fantasy.webp",
+      alt: t("lpSampleFantasyAlt"),
+    },
+    {
+      title: t("lpSampleNovelTitle"),
+      image: "/images/lp/Novel.webp",
+      alt: t("lpSampleNovelAlt"),
+    },
+  ];
+
   return (
     <main translate="no" className="notranslate" style={pageStyle}>
       <section style={heroSectionStyle}>
@@ -390,6 +408,37 @@ export function LandingPage() {
       </section>
 
       <section id="features" style={featuresSectionStyle}>
+        <section aria-labelledby="sample-works-title" style={sampleSectionStyle}>
+          <div style={{ display: "grid", gap: 8 }}>
+            <h2 id="sample-works-title" style={sampleHeadingStyle}>
+              {t("lpSampleWorksHeading")}
+            </h2>
+
+            <p style={sampleLeadStyle}>
+              {t("lpSampleWorksLead")}
+            </p>
+          </div>
+
+          <div style={sampleGridStyle}>
+            {sampleWorks.map((sample) => (
+              <article key={sample.title} style={sampleCardStyle}>
+                <img
+                  src={sample.image}
+                  alt={sample.alt}
+                  style={sampleImageStyle}
+                  loading="lazy"
+                />
+
+                <div style={sampleTextWrapStyle}>
+                  <h3 style={sampleTitleStyle}>
+                    {sample.title}
+                  </h3>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
         {featureImages.map((feature, index) => (
           <article
             key={feature.title}
@@ -852,6 +901,72 @@ const featureImageStyle: CSSProperties = {
   borderRadius: 18,
   border: "1px solid #e5e7eb",
   boxShadow: "0 12px 28px rgba(15,23,42,0.12)",
+};
+
+const sampleSectionStyle: CSSProperties = {
+  background: "#ffffff",
+  border: "1px solid #e5e7eb",
+  borderRadius: 24,
+  padding: 24,
+  boxShadow: "0 14px 34px rgba(15,23,42,0.1)",
+  display: "grid",
+  gap: 20,
+};
+
+const sampleHeadingStyle: CSSProperties = {
+  margin: 0,
+  fontSize: 28,
+  lineHeight: 1.35,
+  fontWeight: 900,
+};
+
+const sampleLeadStyle: CSSProperties = {
+  margin: 0,
+  color: "#4b5563",
+  fontSize: 15,
+  lineHeight: 1.9,
+};
+
+const sampleGridStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+  gap: 18,
+};
+
+const sampleCardStyle: CSSProperties = {
+  overflow: "hidden",
+  border: "1px solid #e5e7eb",
+  borderRadius: 20,
+  background: "#f9fafb",
+  boxShadow: "0 10px 24px rgba(15,23,42,0.08)",
+  display: "grid",
+};
+
+const sampleImageStyle: CSSProperties = {
+  width: "100%",
+  display: "block",
+  background: "#ffffff",
+};
+
+const sampleTextWrapStyle: CSSProperties = {
+  display: "grid",
+  justifyItems: "center",
+  padding: "12px 16px",
+};
+
+const sampleTitleStyle: CSSProperties = {
+  margin: 0,
+  fontSize: 18,
+  lineHeight: 1.4,
+  fontWeight: 900,
+  textAlign: "center",
+};
+
+const sampleBodyStyle: CSSProperties = {
+  margin: 0,
+  color: "#4b5563",
+  fontSize: 13,
+  lineHeight: 1.8,
 };
 
 const reviewSectionStyle: CSSProperties = {
