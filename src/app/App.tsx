@@ -2023,6 +2023,7 @@ const MOSAIC_LAYER_Z_BASE = 10000;
 const EFFECT_LINE_LAYER_Z_BASE = 15000;
 const BUBBLE_LAYER_Z_BASE = 20000;
 const SOUND_LAYER_Z_BASE = 30000;
+const ACTIVE_SELECTION_OVERLAY_Z_INDEX = 2147483000;
 
 const isDragCopyGhostId = (id: number) => {
   return id <= DRAG_COPY_GHOST_ID_BASE;
@@ -7996,7 +7997,27 @@ useLayoutEffect(() => {
   }, [contentPageCount, hasCovers, mainMode]);
 
 useEffect(() => {
+  const isF1KeyEvent = (e: KeyboardEvent) => {
+    return e.key === "F1" || e.code === "F1" || e.keyCode === 112 || e.which === 112;
+  };
+
+  const stopF1BrowserHelp = (e: KeyboardEvent) => {
+    if (!isF1KeyEvent(e)) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  };
+
   const handleKeyDown = (e: KeyboardEvent) => {
+    if (isF1KeyEvent(e)) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      setIsHelpOpen(true);
+      return;
+    }
+
     if (e.defaultPrevented) return;
 
     const target = e.target as HTMLElement | null;
@@ -8040,6 +8061,14 @@ useEffect(() => {
     }
 
     if (e.key !== "Escape") return;
+
+    if (isHelpOpen) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      setIsHelpOpen(false);
+      return;
+    }
 
     if (contextMenu.visible) {
       const returnTarget = contextMenu.target;
@@ -8090,14 +8119,25 @@ useEffect(() => {
   };
 
   window.addEventListener("keydown", handleKeyDown, true);
+  document.addEventListener("keydown", handleKeyDown, true);
+  window.addEventListener("keyup", stopF1BrowserHelp, true);
+  document.addEventListener("keyup", stopF1BrowserHelp, true);
+  window.addEventListener("keypress", stopF1BrowserHelp, true);
+  document.addEventListener("keypress", stopF1BrowserHelp, true);
 
   return () => {
     window.removeEventListener("keydown", handleKeyDown, true);
+    document.removeEventListener("keydown", handleKeyDown, true);
+    window.removeEventListener("keyup", stopF1BrowserHelp, true);
+    document.removeEventListener("keyup", stopF1BrowserHelp, true);
+    window.removeEventListener("keypress", stopF1BrowserHelp, true);
+    document.removeEventListener("keypress", stopF1BrowserHelp, true);
   };
 }, [
   activeTargetType,
   contextMenu.visible,
   contextMenu.target,
+  isHelpOpen,
   trimmingFrameId,
   mainMode,
   selectedPageIds.length,
@@ -20905,23 +20945,35 @@ const handleResetBubbleStyle = (bubbleId: number) => {
         );
       }
 
-      const frameClipPath = getBubbleFrameClipPath(clipFrame);
+    const frameClipPath = clipFrame.borderEnabled
+      ? getFrameInnerClipPath(clipFrame)
+      : getFrameClipPath(clipFrame);
 
-      return (
-        <div key={`mosaic-${normalized.id}`}>
+    return (
+      <div key={`mosaic-${normalized.id}`}>
+        <div
+          style={{
+            position: "absolute",
+            left: `${clipFrame.x}%`,
+            top: `${clipFrame.y}%`,
+            width: `${clipFrame.w}%`,
+            height: `${clipFrame.h}%`,
+            overflow: "hidden",
+            clipPath: frameClipPath,
+            WebkitClipPath: frameClipPath,
+            pointerEvents: "none",
+            zIndex:
+              draggingFrameImage != null
+                ? 0
+                : MOSAIC_LAYER_Z_BASE + (normalized.layer ?? 0),
+            opacity: isDragCopyGhostMosaic ? 0.38 : 1,
+          }}
+        >
           <div
             style={{
               position: "absolute",
-              left: `${clipFrame.x}%`,
-              top: `${clipFrame.y}%`,
-              width: `${clipFrame.w}%`,
-              height: `${clipFrame.h}%`,
+              inset: "0 1px 1px 0",
               overflow: "hidden",
-              clipPath: frameClipPath,
-              WebkitClipPath: frameClipPath,
-              pointerEvents: "none",
-              zIndex: draggingFrameImage != null ? 0 : MOSAIC_LAYER_Z_BASE + (normalized.layer ?? 0),
-              opacity: isDragCopyGhostMosaic ? 0.38 : 1,
             }}
           >
             {renderMosaicBox({
@@ -20932,10 +20984,11 @@ const handleResetBubbleStyle = (bubbleId: number) => {
               showSelectionUi: false,
             })}
           </div>
-
-          {renderMosaicSelectionOverlay()}
         </div>
-      );
+
+        {renderMosaicSelectionOverlay()}
+      </div>
+    );
     };
 
 
@@ -21970,7 +22023,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                     justifyContent: "center",
                     pointerEvents: "auto",
                     boxSizing: "border-box",
-                    zIndex: SOUND_LAYER_Z_BASE + 2000,
+                    zIndex: ACTIVE_SELECTION_OVERLAY_Z_INDEX,
                     ...handlePosition,
                   }}
                 >
@@ -22773,7 +22826,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                     height: `${bubble.h}%`,
                     overflow: "visible",
                     pointerEvents: "none",
-                    zIndex: getBubblePartZIndex(13, bubble),
+                    zIndex: ACTIVE_SELECTION_OVERLAY_Z_INDEX,
                   }}
                 >
                   <div
