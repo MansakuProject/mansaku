@@ -11404,6 +11404,7 @@ useEffect(() => {
     if (isProtectedCoverBaseFrame(currentPage, frame)) {
       e.preventDefault();
       e.stopPropagation();
+      closeTopToolbarMenus();
       closeContextMenu();
       closePageMenu();
       closePageInsertMenu();
@@ -19788,7 +19789,19 @@ const handleResetBubbleStyle = (bubbleId: number) => {
       ? getFrameImagePositionDimPointString(editorDimTargetFrame)
       : null;
 
-    const FRAME_EDITOR_FRONT_Z_INDEX = 30000;
+    const FRAME_EDITOR_FRONT_Z_INDEX = SOUND_LAYER_Z_BASE + 3000;
+    const EFFECT_LINE_EDITOR_FRONT_Z_INDEX = FRAME_EDITOR_FRONT_Z_INDEX + 1;
+
+    const isFrameEffectLineEditingFrame = (frame: Frame) => {
+      return effectLineDimTargetFrameId === frame.id;
+    };
+
+    const getFrameEffectLineDisplayZIndex = (frame: Frame, index: number) => {
+      if (draggingFrameImage != null) return 0;
+      if (isFrameEffectLineEditingFrame(frame)) return EFFECT_LINE_EDITOR_FRONT_Z_INDEX;
+
+      return EFFECT_LINE_LAYER_Z_BASE + index;
+    };
 
     const getFrameDisplayZIndex = (frame: Frame) => {
       if (isProtectedCoverBaseFrame(page, frame)) return 0;
@@ -21429,7 +21442,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                 ? getFrameInnerClipPath(frame)
                 : getFrameClipPath(frame),
               pointerEvents: "none",
-              zIndex: draggingFrameImage != null ? 0 : EFFECT_LINE_LAYER_Z_BASE + index,
+              zIndex: getFrameEffectLineDisplayZIndex(frame, index),
             }}
           >
             <FrameEffectLineLayer frame={frame} />
@@ -26970,6 +26983,8 @@ onMouseDown={(e) => {
 
   e.stopPropagation();
 
+  closeAllFloatingMenus();
+
   if (
     e.ctrlKey ||
     e.metaKey ||
@@ -26980,7 +26995,6 @@ onMouseDown={(e) => {
     return;
   }
 
-  closeAllFloatingMenus();
   setActiveTargetType("page");
   setCurrentPageId(page.id);
   setSelectedItems([]);
