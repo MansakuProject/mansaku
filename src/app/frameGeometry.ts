@@ -405,10 +405,20 @@ export function getFrameInnerClipPath(frame: Frame) {
   const insetY =
     (CONTENT_INSET_CANVAS_PERCENT_Y * 100) / Math.max(frame.h, 0.000001);
 
+  const rightFixX =
+    ((1 / PAGE_WIDTH) * 100 * 100) / Math.max(frame.w, 0.000001);
+  const bottomFixY =
+    ((0.5 / PAGE_HEIGHT) * 100 * 100) / Math.max(frame.h, 0.000001);
+
   const innerLocal = insetLocalPolygon(local, insetX, insetY);
 
   return `polygon(${innerLocal
-    .map((p) => `${p.x}% ${p.y}%`)
+    .map((p) => {
+      const x = p.x >= 50 ? p.x - rightFixX : p.x;
+      const y = p.y >= 50 ? p.y - bottomFixY : p.y;
+
+      return `${x}% ${y}%`;
+    })
     .join(", ")})`;
 }
 

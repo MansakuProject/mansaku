@@ -1532,6 +1532,27 @@ type PageSelectionBox = {
   baseSelectedIds: number[];
 };
 
+type BubbleFontResizeCorner =
+  | "top-left"
+  | "top-right"
+  | "bottom-left"
+  | "bottom-right";
+
+type BubbleFontResizeDragState = {
+  id: number;
+  corner: BubbleFontResizeCorner;
+  startMouseX: number;
+  startMouseY: number;
+  startMouseDistance: number;
+  startFontSize: number;
+  startX: number;
+  startY: number;
+  startW: number;
+  startH: number;
+  historyPushed: boolean;
+  hasMoved: boolean;
+};
+
 type TemplateDefinition = {
   id: string;
   name: string;
@@ -4585,6 +4606,8 @@ export default function App() {
   const [hasCovers, setHasCovers] = useState(false);
   const hasCoversRef = useRef(hasCovers);
   const [dragState, setDragState] = useState<DragState>(null);
+  const [bubbleFontResizeDragState, setBubbleFontResizeDragState] =
+    useState<BubbleFontResizeDragState | null>(null);
   const [isDragCopyPreviewVisible, setIsDragCopyPreviewVisible] = useState(false);
   const [draggingFrameImage, setDraggingFrameImage] = useState<{
     sourceFrameId: number;
@@ -4685,7 +4708,7 @@ export default function App() {
 
   const sliderWheelHistoryRef = useRef<{
     pages: Page[];
-    targetKind: "bubbleTone" | "frameImageScale" | "frameEffectLine";
+    targetKind: "bubbleTone" | "frameImageScale" | "frameEffectLine" | "mosaicPixelSize";
     targetId: number;
     changed: boolean;
     timeoutId: number | null;
@@ -6383,7 +6406,7 @@ export default function App() {
 
 
   function prepareSliderWheelHistory(
-    targetKind: "bubbleTone" | "frameImageScale" | "frameEffectLine",
+    targetKind: "bubbleTone" | "frameImageScale" | "frameEffectLine" | "mosaicPixelSize",
     targetId: number
   ) {
     const current = sliderWheelHistoryRef.current;
@@ -6539,6 +6562,35 @@ export default function App() {
 
           return;
         }
+
+        case "mansaku-slider-mosaic-pixel-size": {
+          if (!selectedMosaic) return;
+
+          const step = e.shiftKey ? 5 : 1;
+          const currentValue = clamp(
+            Math.round(Number(selectedMosaic.pixelSize) || 32),
+            1,
+            64
+          );
+          const nextValue = clamp(currentValue + direction * step, 1, 64);
+
+          if (nextValue === currentValue) return;
+
+          prepareSliderWheelHistory("mosaicPixelSize", selectedMosaic.id);
+
+          updateMosaic(
+            selectedMosaic.id,
+            (m) => ({
+              ...m,
+              pixelSize: nextValue,
+            }),
+            { recordHistory: false }
+          );
+
+          markSliderWheelHistoryChanged();
+
+          return;
+        }
       }
     };
 
@@ -6561,6 +6613,8 @@ export default function App() {
     selectedBubble ? isFreeBubbleBackgroundColorMode(selectedBubble) : false,
     selectedFrame?.id,
     selectedFrame?.imageScale,
+    selectedMosaic?.id,
+    selectedMosaic?.pixelSize,
   ]);
 
   const showMainFloatingEditorPanel =
@@ -6908,6 +6962,7 @@ useLayoutEffect(() => {
       frameHandleInteractionLockRef.current = null;
       dragHistoryPushedRef.current = false;
       setDragState(null);
+      setBubbleFontResizeDragState(null);
       setIsDragCopyPreviewVisible(false);
       setSnapGuideLines([]);
       setBubbleTailWidthDragCursor(null);
@@ -15366,7 +15421,9 @@ function isValidMergeQuad(
             top: `${sound.y}%`,
             overflow: "visible",
             pointerEvents: "none",
-            zIndex: draggingFrameImage != null ? 0 : SOUND_LAYER_Z_BASE + (sound.layer ?? 0),
+            zIndex: draggingFrameImage != null ? 0 : SOUND_LAYER_Z_BASE +
+                  (sound.layer ?? 0) +
+                  (selectedSoundIds.includes(sound.id) ? 1000000 : 0),
           }}
         >
           {content}
@@ -15393,7 +15450,9 @@ function isValidMergeQuad(
           clipPath: frameClipPath,
           WebkitClipPath: frameClipPath,
           pointerEvents: "none",
-          zIndex: draggingFrameImage != null ? 0 : SOUND_LAYER_Z_BASE + (sound.layer ?? 0),
+          zIndex: draggingFrameImage != null ? 0 : SOUND_LAYER_Z_BASE +
+                  (sound.layer ?? 0) +
+                  (selectedSoundIds.includes(sound.id) ? 1000000 : 0),
         }}
       >
         <div
@@ -15453,7 +15512,9 @@ function isValidMergeQuad(
           height: `${bubble.h}%`,
           overflow: "visible",
           pointerEvents: exportMode ? "none" : "auto",
-          zIndex: draggingFrameImage != null ? 0 : BUBBLE_LAYER_Z_BASE + (bubble.layer ?? 0),
+          zIndex: draggingFrameImage != null ? 0 : BUBBLE_LAYER_Z_BASE +
+                (bubble.layer ?? 0) +
+                (selectedBubbleIds.includes(bubble.id) ? 1000000 : 0),
         }}
         onMouseDown={(e) => {
           if (exportMode) return;
@@ -15685,7 +15746,9 @@ function isValidMergeQuad(
           height: `${centerFrame.h}%`,
           overflow: "hidden",
           pointerEvents: "none",
-          zIndex: draggingFrameImage != null ? 0 : BUBBLE_LAYER_Z_BASE + (bubble.layer ?? 0),
+          zIndex: draggingFrameImage != null ? 0 : BUBBLE_LAYER_Z_BASE +
+                (bubble.layer ?? 0) +
+                (selectedBubbleIds.includes(bubble.id) ? 1000000 : 0),
         }}
       >
         <div
@@ -16234,6 +16297,175 @@ const handleResetBubbleStyle = (bubbleId: number) => {
       historyPushed: false,
     });
   };
+
+  const getBubbleFontResizePageHandlePosition = (
+    bubble: Bubble,
+    corner: BubbleFontResizeCorner
+  ): React.CSSProperties => {
+    const left = bubble.x;
+    const top = bubble.y;
+    const right = bubble.x + bubble.w;
+    const bottom = bubble.y + bubble.h;
+
+    switch (corner) {
+      case "top-left":
+        return {
+          left: `calc(${left}% - 24px)`,
+          top: `calc(${top}% - 24px)`,
+          cursor: "nwse-resize",
+        };
+
+      case "top-right":
+        return {
+          left: `calc(${right}% + 4px)`,
+          top: `calc(${top}% - 24px)`,
+          cursor: "nesw-resize",
+        };
+
+      case "bottom-left":
+        return {
+          left: `calc(${left}% - 24px)`,
+          top: `calc(${bottom}% + 4px)`,
+          cursor: "nesw-resize",
+        };
+
+      case "bottom-right":
+      default:
+        return {
+          left: `calc(${right}% + 4px)`,
+          top: `calc(${bottom}% + 4px)`,
+          cursor: "nwse-resize",
+        };
+    }
+  };
+
+  const startBubbleFontResize = (
+    e: MouseEvent | React.MouseEvent<HTMLDivElement>,
+    bubble: Bubble,
+    corner: BubbleFontResizeCorner
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    closeTopToolbarMenus();
+    focusCanvasTrap();
+    selectBubble(bubble.id);
+    bringBubbleToFront(bubble.id, { recordHistory: false });
+
+    const rect = getPageRect();
+    if (!rect) return;
+
+    const centerX = rect.left + (rect.width * (bubble.x + bubble.w / 2)) / 100;
+    const centerY = rect.top + (rect.height * (bubble.y + bubble.h / 2)) / 100;
+    const startMouseDistance = Math.max(1, Math.hypot(e.clientX - centerX, e.clientY - centerY));
+
+    setBubbleFontResizeDragState({
+      id: bubble.id,
+      corner,
+      startMouseX: e.clientX,
+      startMouseY: e.clientY,
+      startMouseDistance,
+      startFontSize: clamp(Number(bubble.fontSize) || 22, 10, 120),
+      startX: bubble.x,
+      startY: bubble.y,
+      startW: bubble.w,
+      startH: bubble.h,
+      historyPushed: false,
+      hasMoved: false,
+    });
+  };
+
+  useEffect(() => {
+    if (!bubbleFontResizeDragState) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (currentPageId == null || !pageRef.current) return;
+
+      const rect = pageRef.current.getBoundingClientRect();
+      const centerX =
+        rect.left +
+        (rect.width *
+          (bubbleFontResizeDragState.startX +
+            bubbleFontResizeDragState.startW / 2)) /
+          100;
+      const centerY =
+        rect.top +
+        (rect.height *
+          (bubbleFontResizeDragState.startY +
+            bubbleFontResizeDragState.startH / 2)) /
+          100;
+
+      const rawDxPercent = ((e.clientX - centerX) / rect.width) * 100;
+      const rawDyPercent = ((e.clientY - centerY) / rect.height) * 100;
+
+      const dxPercent = e.shiftKey
+        ? snapToGridPercent(rawDxPercent)
+        : rawDxPercent;
+      const dyPercent = e.shiftKey
+        ? snapToGridPercent(rawDyPercent)
+        : rawDyPercent;
+
+      const dx = (dxPercent / 100) * rect.width;
+      const dy = (dyPercent / 100) * rect.height;
+      const distance = Math.max(1, Math.hypot(dx, dy));
+      const ratio = distance / bubbleFontResizeDragState.startMouseDistance;
+      const nextFontSize = clamp(
+        bubbleFontResizeDragState.startFontSize * ratio,
+        10,
+        120
+      );
+
+      const currentBubble = pagesRef.current
+        .find((page) => page.id === currentPageId)
+        ?.bubbles.find((bubble) => bubble.id === bubbleFontResizeDragState.id);
+
+      if (!currentBubble) return;
+      if (Math.abs(nextFontSize - currentBubble.fontSize) < 0.001) return;
+
+      if (!bubbleFontResizeDragState.historyPushed) {
+        pushHistorySnapshot();
+        setBubbleFontResizeDragState((prev) =>
+          prev ? { ...prev, historyPushed: true, hasMoved: true } : prev
+        );
+      } else if (!bubbleFontResizeDragState.hasMoved) {
+        setBubbleFontResizeDragState((prev) =>
+          prev ? { ...prev, hasMoved: true } : prev
+        );
+      }
+
+      applyPagesChange(
+        (prev) =>
+          prev.map((page) =>
+            page.id === currentPageId
+              ? {
+                  ...page,
+                  bubbles: page.bubbles.map((bubble) =>
+                    bubble.id === bubbleFontResizeDragState.id
+                      ? fitBubbleSizeToText(
+                          { ...bubble, fontSize: nextFontSize },
+                          t("bubbleTextPlaceholder")
+                        )
+                      : bubble
+                  ),
+                }
+              : page
+          ),
+        { recordHistory: false }
+      );
+    };
+
+    const handleMouseUp = () => {
+      setBubbleFontResizeDragState(null);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [bubbleFontResizeDragState, currentPageId]);
 
   const startBubbleTail = (
     e: MouseEvent | React.MouseEvent<HTMLDivElement>,
@@ -20521,16 +20753,57 @@ const handleResetBubbleStyle = (bubbleId: number) => {
         { mode: "left" as const, left: 0, top: 50, cursor: "ew-resize" },
       ];
 
+      const renderMosaicSelectionOverlay = () => {
+        if (exportMode || !isSelected || isDragCopyGhostMosaic) return null;
+
+        return (
+          <div
+            data-mansaku-mosaic-selection-overlay="true"
+            style={{
+              position: "absolute",
+              left: `${normalized.x}%`,
+              top: `${normalized.y}%`,
+              width: `${normalized.w}%`,
+              height: `${normalized.h}%`,
+              boxSizing: "border-box",
+              outline: "2px solid #2563eb",
+              outlineOffset: 0,
+              pointerEvents: "none",
+              zIndex: draggingFrameImage != null ? 0 : SOUND_LAYER_Z_BASE + 1000 + (normalized.layer ?? 0),
+            }}
+          >
+            {!isMultiSelected &&
+              handles.map((handle) => (
+                <div
+                  key={`mosaic-resize-overlay-${normalized.id}-${handle.mode}`}
+                  onContextMenu={suppressHandleContextMenu}
+                  onMouseDown={(e) => startMosaicResize(e, normalized, handle.mode)}
+                  style={{
+                    ...handleBaseStyle,
+                    left: `${handle.left}%`,
+                    top: `${handle.top}%`,
+                    transform: "translate(-50%, -50%)",
+                    cursor: handle.cursor,
+                    pointerEvents: "auto",
+                  }}
+                />
+              ))}
+          </div>
+        );
+      };
+
       const renderMosaicBox = ({
         left,
         top,
         width,
         height,
+        showSelectionUi = true,
       }: {
         left: string;
         top: string;
         width: string;
         height: string;
+        showSelectionUi?: boolean;
       }) => (
         <div
           data-canvas-focus-object="true"
@@ -20558,7 +20831,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
             zIndex: draggingFrameImage != null ? 0 : MOSAIC_LAYER_Z_BASE + (normalized.layer ?? 0),
             opacity: isDragCopyGhostMosaic ? 0.38 : 1,
             boxSizing: "border-box",
-            outline: !exportMode && isSelected ? "2px solid #2563eb" : "none",
+            outline: !exportMode && showSelectionUi && isSelected ? "2px solid #2563eb" : "none",
             outlineOffset: 0,
           }}
         >
@@ -20577,7 +20850,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
             }}
           />
 
-          {!exportMode && isSelected && !isMultiSelected && (
+          {!exportMode && showSelectionUi && isSelected && !isMultiSelected && (
             <>
               {handles.map((handle) => (
                 <div
@@ -20622,28 +20895,32 @@ const handleResetBubbleStyle = (bubbleId: number) => {
       const frameClipPath = getBubbleFrameClipPath(clipFrame);
 
       return (
-        <div
-          key={`mosaic-${normalized.id}`}
-          style={{
-            position: "absolute",
-            left: `${clipFrame.x}%`,
-            top: `${clipFrame.y}%`,
-            width: `${clipFrame.w}%`,
-            height: `${clipFrame.h}%`,
-            overflow: "hidden",
-            clipPath: frameClipPath,
-            WebkitClipPath: frameClipPath,
-            pointerEvents: "none",
-            zIndex: draggingFrameImage != null ? 0 : MOSAIC_LAYER_Z_BASE + (normalized.layer ?? 0),
-            opacity: isDragCopyGhostMosaic ? 0.38 : 1,
-          }}
-        >
-          {renderMosaicBox({
-            left: `${((normalized.x - clipFrame.x) / clipFrame.w) * 100}%`,
-            top: `${((normalized.y - clipFrame.y) / clipFrame.h) * 100}%`,
-            width: `${(normalized.w / clipFrame.w) * 100}%`,
-            height: `${(normalized.h / clipFrame.h) * 100}%`,
-          })}
+        <div key={`mosaic-${normalized.id}`}>
+          <div
+            style={{
+              position: "absolute",
+              left: `${clipFrame.x}%`,
+              top: `${clipFrame.y}%`,
+              width: `${clipFrame.w}%`,
+              height: `${clipFrame.h}%`,
+              overflow: "hidden",
+              clipPath: frameClipPath,
+              WebkitClipPath: frameClipPath,
+              pointerEvents: "none",
+              zIndex: draggingFrameImage != null ? 0 : MOSAIC_LAYER_Z_BASE + (normalized.layer ?? 0),
+              opacity: isDragCopyGhostMosaic ? 0.38 : 1,
+            }}
+          >
+            {renderMosaicBox({
+              left: `${((normalized.x - clipFrame.x) / clipFrame.w) * 100}%`,
+              top: `${((normalized.y - clipFrame.y) / clipFrame.h) * 100}%`,
+              width: `${(normalized.w / clipFrame.w) * 100}%`,
+              height: `${(normalized.h / clipFrame.h) * 100}%`,
+              showSelectionUi: false,
+            })}
+          </div>
+
+          {renderMosaicSelectionOverlay()}
         </div>
       );
     };
@@ -21636,10 +21913,65 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                   }}
                 />
               )}
+
             </>,
             { pointerEvents: "none", overflow: "visible" }
           );
         })}
+
+        {!exportMode && !isMultiSelected &&
+          sortedBubbles.map((bubble) => {
+            const isSelected = selectedItems.some(
+              (item) => item.kind === "bubble" && item.id === bubble.id
+            );
+
+            if (!isSelected) return null;
+
+            return ([
+              "top-left",
+              "top-right",
+              "bottom-left",
+              "bottom-right",
+            ] as BubbleFontResizeCorner[]).map((corner) => {
+              const handlePosition = getBubbleFontResizePageHandlePosition(
+                bubble,
+                corner
+              );
+
+              return (
+                <div
+                  key={`bubble-font-resize-overlay-${bubble.id}-${corner}`}
+                  title={t("fontSize")}
+                  onContextMenu={suppressHandleContextMenu}
+                  onMouseDown={(e) => startBubbleFontResize(e, bubble, corner)}
+                  style={{
+                    position: "absolute",
+                    width: 20,
+                    height: 20,
+                    borderRadius: 6,
+                    background: "#ffffff",
+                    border: "2px solid #2563eb",
+                    color: "#111827",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    pointerEvents: "auto",
+                    boxSizing: "border-box",
+                    zIndex: SOUND_LAYER_Z_BASE + 2000,
+                    ...handlePosition,
+                  }}
+                >
+                  <DiagonalResizeSvgIcon
+                    direction={
+                      corner === "top-left" || corner === "bottom-right"
+                        ? "nesw"
+                        : "nwse"
+                    }
+                  />
+                </div>
+              );
+            });
+          })}
 
         {page.frames.map((frame) => {
           const isFrameSelected =
@@ -22428,7 +22760,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                     height: `${bubble.h}%`,
                     overflow: "visible",
                     pointerEvents: "none",
-                    zIndex: 2100,
+                    zIndex: getBubblePartZIndex(13, bubble),
                   }}
                 >
                   <div
@@ -25641,11 +25973,13 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                                 max={64}
                                 step={1}
                                 value={clamp(Math.round(Number(selectedMosaic.pixelSize) || 32), 1, 64)}
-                                onPointerDown={() => {
+                                onPointerDown={(e) => {
+                                  e.currentTarget.focus({ preventScroll: true });
                                   pushHistorySnapshot();
                                 }}
                                 onChange={(e) => {
                                   const value = clamp(Number(e.target.value), 1, 64);
+
                                   updateMosaic(
                                     selectedMosaic.id,
                                     (m) => ({
@@ -25654,6 +25988,40 @@ const handleResetBubbleStyle = (bubbleId: number) => {
                                     }),
                                     { recordHistory: false }
                                   );
+                                }}
+                                onWheelCapture={(e) => {
+                                  if (e.ctrlKey || e.metaKey) return;
+
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  e.currentTarget.focus({ preventScroll: true });
+
+                                  const currentValue = clamp(
+                                    Math.round(Number(selectedMosaic.pixelSize) || 32),
+                                    1,
+                                    64
+                                  );
+                                  const step = e.shiftKey ? 5 : 1;
+                                  const nextValue = clamp(
+                                    currentValue + (e.deltaY < 0 ? step : -step),
+                                    1,
+                                    64
+                                  );
+
+                                  if (nextValue === currentValue) return;
+
+                                  prepareSliderWheelHistory("mosaicPixelSize", selectedMosaic.id);
+
+                                  updateMosaic(
+                                    selectedMosaic.id,
+                                    (m) => ({
+                                      ...m,
+                                      pixelSize: nextValue,
+                                    }),
+                                    { recordHistory: false }
+                                  );
+
+                                  markSliderWheelHistoryChanged();
                                 }}
                                 style={{ ...sliderInputStyle, flex: 1 }}
                               />
