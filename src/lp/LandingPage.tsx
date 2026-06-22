@@ -1,5 +1,5 @@
 import { APP_NAME } from "../appInfo";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import type { CSSProperties, MouseEvent } from "react";
 import { ContactDialog, submitMansakuContact } from "../app/ContactDialog";
 import {
@@ -390,7 +390,7 @@ export function LandingPage() {
           </div>
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            {[t("lpChipDesktop"), t("lpChipBrowser"), t("lpChipLocalSave"), t("lpChipFree")].map((label) => (
+            {[t("lpChipDesktop"), t("lpChipBrowser"), t("lpChipLocalSave"), t("lpChipNoRegistration"), t("lpChipFree")].map((label) => (
               <span key={label} style={chipStyle}>
                 {label}
               </span>
@@ -440,27 +440,43 @@ export function LandingPage() {
         </section>
 
         {featureImages.map((feature, index) => (
-          <article
-            key={feature.title}
-            style={{
-              ...featureCardStyle,
-              gridTemplateColumns: index % 2 === 0 ? "1fr 1.25fr" : "1.25fr 1fr",
-            }}
-          >
-            <div style={{ order: index % 2 === 0 ? 0 : 1, display: "grid", gap: 10 }}>
-              <h2 style={{ margin: 0, fontSize: 24, lineHeight: 1.4 }}>
-                {feature.title}
-              </h2>
+          <Fragment key={feature.title}>
+            <article
+              key={feature.title}
+              style={{
+                ...featureCardStyle,
+                gridTemplateColumns: index % 2 === 0 ? "1fr 1.25fr" : "1.25fr 1fr",
+              }}
+            >
+              <div style={{ order: index % 2 === 0 ? 0 : 1, display: "grid", gap: 10 }}>
+                <h2 style={{ margin: 0, fontSize: 24, lineHeight: 1.4 }}>
+                  {feature.title}
+                </h2>
 
-              <p style={featureTextStyle}>{feature.body}</p>
-            </div>
+                <p style={featureTextStyle}>{feature.body}</p>
+              </div>
 
-            <img
-              src={feature.image}
-              alt={feature.alt}
-              style={featureImageStyle}
-            />
-          </article>
+              <img
+                src={feature.image}
+                alt={feature.alt}
+                style={featureImageStyle}
+              />
+            </article>
+
+            {index === featureImages.length - 1 && (
+              <section aria-label={t("lpOpenApp")} style={exportCtaSectionStyle}>
+                <a
+                  href={appLinkHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={handleOpenApp}
+                  style={exportCtaLinkStyle}
+                >
+                  {t("lpOpenApp")}
+                </a>
+              </section>
+            )}
+          </Fragment>
         ))}
 
         {publishedReviews.length > 0 && (
@@ -901,6 +917,26 @@ const featureImageStyle: CSSProperties = {
   borderRadius: 18,
   border: "1px solid #e5e7eb",
   boxShadow: "0 12px 28px rgba(15,23,42,0.12)",
+};
+
+const exportCtaSectionStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "flex-start",
+  padding: "6px 0 4px",
+};
+
+const exportCtaLinkStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minHeight: 52,
+  padding: "0 28px",
+  borderRadius: 14,
+  background: "#111827",
+  color: "#ffffff",
+  textDecoration: "none",
+  fontWeight: 900,
+  boxShadow: "0 14px 30px rgba(17,24,39,0.22)",
 };
 
 const sampleSectionStyle: CSSProperties = {
