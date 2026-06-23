@@ -135,8 +135,6 @@ import {
 } from "./positionUtils";
 
 import {
-  getBubbleCenterFrame,
-  getSoundCenterFrame,
   getBubbleFrameClipPath,
   getFrameClipPath,
   getFrameImageMetrics,
@@ -1944,6 +1942,38 @@ function detectImageTransparency(image: HTMLImageElement): boolean {
   }
 
   return false;
+}
+
+function getOverlayTargetFrameAtPoint(page: Page, point: PercentPoint) {
+  return (
+    [...getEditableFrames(page.frames)]
+      .reverse()
+      .find(
+        (frame) =>
+          !hasFrameImageTransparency(frame) && isPointInFramePolygon(point, frame)
+      ) ?? null
+  );
+}
+
+function getEffectiveBubbleCenterFrame(page: Page, bubble: Bubble) {
+  return getOverlayTargetFrameAtPoint(page, {
+    x: bubble.x + bubble.w / 2,
+    y: bubble.y + bubble.h / 2,
+  });
+}
+
+function getEffectiveSoundCenterFrame(page: Page, sound: SoundText) {
+  return getOverlayTargetFrameAtPoint(page, {
+    x: sound.x,
+    y: sound.y,
+  });
+}
+
+function getEffectiveMosaicCenterFrame(page: Page, mosaic: Mosaic) {
+  return getOverlayTargetFrameAtPoint(page, {
+    x: mosaic.x + mosaic.w / 2,
+    y: mosaic.y + mosaic.h / 2,
+  });
 }
 
 const hasFrameImageFlipX = (frame: Frame) => {
@@ -9229,7 +9259,10 @@ useEffect(() => {
             imageNaturalWidth: naturalWidth,
             imageNaturalHeight: naturalHeight,
             imageHasTransparency,
-          } as Frame & FrameImageTransparencyFields);
+            frameBorderVisible: imageHasTransparency
+              ? false
+              : isFrameBorderVisible(f),
+          } as Frame & FrameImageTransparencyFields & FrameBorderVisibleState);
 
           return {
             ...tempFrame,
@@ -15437,7 +15470,7 @@ function isValidMergeQuad(
   ) => {
     const soundWithClip = sound as SoundText & { clipToFrame?: boolean };
 
-    const centerFrame = getSoundCenterFrame(page, sound);
+    const centerFrame = getEffectiveSoundCenterFrame(page, sound);
     const clipFrame =
       centerFrame && !isInnerLockedFrame(centerFrame) ? centerFrame : null;
 
@@ -15765,8 +15798,10 @@ function isValidMergeQuad(
     bubble: Bubble,
     exportMode: boolean
   ) => {
-    const centerFrame = getBubbleCenterFrame(page, bubble);
-    const shouldClip = !!bubble.clipToFrame && !!centerFrame;
+    const centerFrame = getEffectiveBubbleCenterFrame(page, bubble);
+    const shouldClip =
+      !!bubble.clipToFrame &&
+      !!centerFrame;
 
     if (!shouldClip || !centerFrame) {
       return renderBubbleElement(page, bubble, exportMode);
@@ -20135,7 +20170,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
     ) => {
       const bubbleWithClip = bubble as Bubble & { clipToFrame?: boolean };
 
-      const centerFrame = getBubbleCenterFrame(page, bubble);
+      const centerFrame = getEffectiveBubbleCenterFrame(page, bubble);
       const clipFrame =
         centerFrame && !isInnerLockedFrame(centerFrame) ? centerFrame : null;
 
@@ -20218,7 +20253,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
       const bubbleWithClip = bubble as Bubble & { clipToFrame?: boolean };
       if (!bubbleWithClip.clipToFrame) return { x: 0, y: 0 };
 
-      const centerFrame = getBubbleCenterFrame(page, bubble);
+      const centerFrame = getEffectiveBubbleCenterFrame(page, bubble);
       const clipFrame =
         centerFrame && !isInnerLockedFrame(centerFrame) ? centerFrame : null;
 
@@ -20924,7 +20959,7 @@ const handleResetBubbleStyle = (bubbleId: number) => {
         </div>
       );
 
-      const centerFrame = getBubbleCenterFrame(page, normalized as unknown as Bubble);
+      const centerFrame = getEffectiveMosaicCenterFrame(page, normalized);
       const clipFrame =
         centerFrame && !isInnerLockedFrame(centerFrame) ? centerFrame : null;
       const shouldClip =
